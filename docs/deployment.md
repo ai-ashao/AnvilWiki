@@ -10,7 +10,7 @@
 
 - 一个 [GitHub](https://github.com) 账号（免费）
 - 一个 [Cloudflare](https://cloudflare.com) 账号（免费）
-- 本地已安装 Node.js 20+ 和 pnpm
+- 本地已安装 Node.js 22+ 和 pnpm
 - 已经 fork 了 AnvilWiki 仓库并改好了配置层（见 [apply-template.md](./apply-template.md)）
 
 > 还没 fork？看 [快速开始](../README.md#5-分钟快速开始)。
@@ -61,18 +61,13 @@ Cloudflare 会自动检测 Astro，但请确认以下设置：
 
 | 变量名                    | 值                            | 说明                                   |
 | ------------------------- | ----------------------------- | -------------------------------------- |
-| `NODE_VERSION`            | `20`                          | 确保 Node 版本                         |
+| `NODE_VERSION`            | `22`                          | 与 `.nvmrc` 和 `package.json` 保持一致 |
 | `SITE_URL`                | `https://<project>.pages.dev` | **先用临时域名**，必须含 `https://` 前缀 |
 | `PUBLIC_AD_MOBILE_320X50` | （你的 广告 key）         | 可选，留空则不显示广告                 |
 
 > ⚠️ **`SITE_URL` 必须含 `https://` 前缀**（如 `https://anvilquestwiki.wiki`，不是裸域名 `anvilquestwiki.wiki`）。Astro 把它当 URL 解析，裸域名会让 build 报 `Invalid url`。它影响 sitemap、og:image、robots.txt 里所有绝对 URL 的生成。
 
-> 🚨 **重要：`wrangler.toml` 会接管 env 配置。** 本仓库根目录有 `wrangler.toml`，里面声明了 `[vars]` 段。**当 wrangler.toml 存在时，Cloudflare dashboard 的 Environment variables 会被完全忽略**（[官方文档](https://developers.cloudflare.com/pages/functions/wrangler-configuration/)）。所以你有两个选择：
->
-> - **选项 A（推荐新手）：删掉 `wrangler.toml`**，然后 dashboard 的 Environment variables 就能正常工作。fork 后 `git rm wrangler.toml && git commit`，再在 dashboard 配 env 即可。
-> - **选项 B（保留 wrangler.toml）：改 `wrangler.toml` 的 `[vars]` 值**，把 `SITE_URL` 和 `PUBLIC_GISCUS_*` 改成你自己的，dashboard 不用配（配了也被忽略）。
->
-> 如果你在 dashboard 配了 env 但 build 时拿不到（症状：组件不渲染、`process.env` 读不到），99% 是踩了这个坑。诊断方法：在 `astro.config.ts` 顶部加一行 `console.log('ENV:', Object.keys(process.env).filter(k => k.startsWith('PUBLIC_')))`，push 后看 build 日志。
+> 本 Fork 默认不提交 `wrangler.toml`，由 Cloudflare dashboard 管理环境变量，避免误用模板演示站的域名和评论配置。如果以后新增 `wrangler.toml`，请注意它会接管 Pages 环境变量；届时必须把 `SITE_URL` 和所有 `PUBLIC_*` 变量同步写入该文件。
 
 ### Step 4 — 部署
 
@@ -123,8 +118,7 @@ Cloudflare 会自动检测 Astro，但请确认以下设置：
 
 DNS 生效后，改 `SITE_URL` 为你的真实域名。**根据你部署时的选择**：
 
-- **如果删了 `wrangler.toml`**：去 Cloudflare Pages → **Settings** → **Environment variables**，把 `SITE_URL` 改成 `https://anvilquestwiki.wiki`。
-- **如果保留了 `wrangler.toml`**：改 `wrangler.toml` 里 `[vars]` 的 `SITE_URL`，commit + push。
+- 去 Cloudflare Pages → **Settings** → **Environment variables**，把 `SITE_URL` 改成 `https://anvilquestwiki.wiki`。
 
 ```
 SITE_URL=https://anvilquestwiki.wiki
@@ -190,7 +184,7 @@ AnvilWiki 是纯静态站点（`dist/`），可以部署到任何静态托管：
 | 变量                        | 必填 | 说明                                                   |
 | --------------------------- | ---- | ------------------------------------------------------ |
 | `SITE_URL`                  | ✅   | 站点绝对 URL（无尾斜杠），影响 sitemap/og:image/robots |
-| `NODE_VERSION`              | ✅   | 固定 `20`                                              |
+| `NODE_VERSION`              | ✅   | 固定 `22`                                              |
 | `PUBLIC_AD_MOBILE_320X50`   | 可选 | 广告网络 320×50 Sticky 广告 key                        |
 | `PUBLIC_AD_SIDEBAR_160X600` | 可选 | 侧边栏竖幅 key                                         |
 | `PUBLIC_AD_SIDEBAR_160X300` | 可选 | 侧边栏半高 key                                         |
@@ -258,7 +252,7 @@ curl -I https://<你的域名>/privacy-policy/
 
 ### Q: 构建失败，报 `Cannot find module 'astro:content'`
 
-A: Cloudflare Pages 的 Node 版本可能不对。确认环境变量 `NODE_VERSION=20` 已配。
+A: Cloudflare Pages 的 Node 版本可能不对。确认环境变量 `NODE_VERSION=22` 已配。
 
 ### Q: 构建失败，报 `ERR_PNPM_IGNORED_BUILDS`
 

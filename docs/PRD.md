@@ -139,7 +139,7 @@ AnvilWiki 面向「游戏 wiki 站点」这一特定场景，在框架、部署�
 | **sitemap** | `@astrojs/sitemap` | latest | 自动生成 sitemap.xml，支持 i18n alternate。 |
 | **SEO** | 自建 JSON-LD 组件 + meta 工具函数 | — | Organization/WebSite/Article/BreadcrumbList/ItemList。 |
 | **包管理** | pnpm | 9.x | 快、省磁盘、Cloudflare Pages 原生支持。 |
-| **Node** | Node 20 LTS | — | Cloudflare Pages 默认支持，稳定。 |
+| **Node** | Node 22 LTS | — | 与 `.nvmrc`、`package.json` 和 CI 保持一致。 |
 | **部署** | Cloudflare Pages | — | 无限带宽 + 全球 CDN + 免费 SSL + Git 自动部署。 |
 | **协议** | MIT | — | 最宽松，允许商用。 |
 
@@ -270,10 +270,10 @@ anvilwiki/
 ├── tsconfig.json                 # TypeScript 严格模式
 ├── package.json
 ├── pnpm-lock.yaml
-├── wrangler.toml                 # Cloudflare Pages 配置（可选，用于 wrangler 本地预览）
+├── wrangler.toml                 # 可选；本 Fork 默认不提交，避免覆盖 dashboard 环境变量
 ├── .env.example                  # 环境变量模板（广告 key 等）
 ├── .gitignore
-├── .nvmrc                        # Node 20 LTS
+├── .nvmrc                        # Node 22 LTS
 ├── README.md                     # ⭐ 项目门面（中英双语，新手指南）
 ├── LICENSE                       # MIT
 ├── CONTRIBUTING.md               # 贡献指南
@@ -1081,7 +1081,7 @@ const adKey = import.meta.env.PUBLIC_AD_MOBILE_320X50;
 1. 注册你的广告网络 Publisher 账号。
 2. Add Website → 填域名 → 选 Games 分类 → 选广告格式。
 3. 审核通过后，创建各广告单元拿 key。
-4. 在 Cloudflare Pages 项目 Settings → Environment variables 填入各 key（或改 `wrangler.toml` 的 `[vars]`）。
+4. 在 Cloudflare Pages 项目 Settings → Environment variables 填入各 key。
 5. 重新部署，广告自动出现。
 
 > 广告接入的详细操作参考你的广告网络文档。
@@ -1187,9 +1187,9 @@ Cloudflare Pages（连接 GitHub 仓库）
 **构建命令**：`pnpm build`
 **输出目录**：`dist`
 **环境变量**：见 [附录 A](#附录-a-环境变量清单)。
-**Node 版本**：`NODE_VERSION = 20`（Cloudflare Pages 默认支持）。
+**Node 版本**：`NODE_VERSION = 22`（与项目运行时要求保持一致）。
 
-**`wrangler.toml`（可选，用于本地预览）**：
+**`wrangler.toml`（可选，用于本地预览）**：本 Fork 默认不提交该文件；如自行添加，它会接管 Cloudflare Pages 环境变量。
 ```toml
 name = "anvilwiki"
 compatibility_date = "2026-08-11"
@@ -1387,7 +1387,7 @@ describe('sitemap', () => {
 
 ### 15.1 仓库策略
 
-- **仓库地址**：`github.com/PNGTRID/AnvilWiki`
+- **仓库地址**：`github.com/ai-ashao/AnvilWiki`
 - **协议**：MIT（最宽松，允许商用）
 - **主分支**：`main`（受保护，PR 合并）
 - **发版**：Semantic Versioning（v1.0.0 / v1.1.0 / v1.1.1）
@@ -1535,7 +1535,7 @@ PUBLIC_GA_ID=
 ```
 □ Cloudflare Pages 项目已创建，连 GitHub 仓库
 □ 构建命令 pnpm build，输出目录 dist
-□ NODE_VERSION = 20 已配
+□ NODE_VERSION = 22 已配
 □ 环境变量已填（至少 SITE_URL）
 □ 自定义域名已绑定，SSL 已生效
 □ 部署成功，访问域名看到正确内容

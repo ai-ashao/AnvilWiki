@@ -7,10 +7,10 @@
   "homepage": "https://anvilwiki.pages.dev",
   "repository": {
     "type": "git",
-    "url": "https://github.com/PNGTRID/AnvilWiki.git"
+    "url": "https://github.com/ai-ashao/AnvilWiki.git"
   },
   "bugs": {
-    "url": "https://github.com/PNGTRID/AnvilWiki/issues"
+    "url": "https://github.com/ai-ashao/AnvilWiki/issues"
   },
   "keywords": [
     "astro",

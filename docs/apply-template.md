@@ -253,7 +253,7 @@ tags: ["boss", "guide"]
 □ hero 图是真实图片（非占位）
 □ 所有 MDX frontmatter 通过 Zod schema（pnpm build 不报错）
 □ sitemap URL 全部返回 200（pnpm check-sitemap）
-□ SITE_URL 环境变量已配（含 https:// 协议，改 wrangler.toml 或 dashboard）
+□ SITE_URL 环境变量已配（含 https:// 协议，在 Cloudflare dashboard 配置）
 ```
 
 ---

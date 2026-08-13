@@ -9,7 +9,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Astro](https://img.shields.io/badge/Astro-5.x-FF5D01?logo=astro&logoColor=white)](https://astro.build)
 [![Cloudflare Pages](https://img.shields.io/badge/Cloudflare-Pages-F38020?logo=cloudflare&logoColor=white)](https://pages.cloudflare.com)
-[![Release](https://img.shields.io/github/v/release/PNGTRID/AnvilWiki?label=Release&color=brightgreen)](https://github.com/PNGTRID/AnvilWiki/releases)
+[![Release](https://img.shields.io/github/v/release/ai-ashao/AnvilWiki?label=Release&color=brightgreen)](https://github.com/ai-ashao/AnvilWiki/releases)
 [![Live Demo](https://img.shields.io/badge/Demo-anvilwiki.pages.dev-brightgreen)](https://anvilwiki.pages.dev/)
 
 <table>
@@ -60,7 +60,7 @@ AnvilWiki 是一个**游戏 wiki 站点模板**——用来快速搭建围绕某
 # 1. Fork 本仓库到你的 GitHub
 
 # 2. 本地克隆 & 安装
-git clone https://github.com/PNGTRID/AnvilWiki.git
+git clone https://github.com/ai-ashao/AnvilWiki.git
 cd anvilwiki
 pnpm install
 
@@ -89,6 +89,7 @@ pnpm apply-template
 | [docs/content-format.md](docs/content-format.md)               | MDX 文章格式规范                                            |
 | [docs/seo.md](docs/seo.md)                                     | SEO 工程化说明                                              |
 | [docs/comments.md](docs/comments.md)                           | Giscus 评论系统接入指南                                     |
+| [docs/first-game-experiment.md](docs/first-game-experiment.md) | 首个游戏站实验准备与上线清单                                 |
 | [docs/migration-from-nextjs.md](docs/migration-from-nextjs.md) | 从 Next.js 模板迁移指南                                     |
 
 ### 技术栈
@@ -130,7 +131,7 @@ Built on **Astro + Cloudflare Pages**: pure static output, zero adapters, free u
 # 1. Fork this repo to your GitHub
 
 # 2. Clone & install locally
-git clone https://github.com/PNGTRID/AnvilWiki.git
+git clone https://github.com/ai-ashao/AnvilWiki.git
 cd anvilwiki
 pnpm install
 
