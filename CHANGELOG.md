@@ -7,7 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No changes yet._
+## [1.1.0] — 2026-08-14
+
+**AnvilWiki v1.1 — SEO & E-E-A-T 增强版。**
+
+This release adds AI-Overview-oriented SEO features (TOC, Quick Answer, author byline, VideoGame JSON-LD) and broadens ad support (Google AdSense alongside the iframe ad isolation). Includes a round of naming normalization to keep config/locales schema generic (no demo-game-specific terms).
+
+### Added
+- **Article TOC**: Auto-generated table of contents from H2/H3 headings. Sticky on desktop, collapsible `<details>` on mobile (`TableOfContents.astro`).
+- **Quick Answer summary block**: Optional `summary` frontmatter field rendered as a callout above the article body — optimized for AI Overviews and featured snippets.
+- **Article author byline**: Optional `author` frontmatter field (falls back to `site.defaultAuthor`). E-E-A-T signal.
+- **VideoGame JSON-LD**: Injected on the homepage for game entity recognition (`videoGameJsonLd()` in `seo.ts`).
+- **Contact page**: New legal page at `/contact` with community links. E-E-A-T trust signal.
+- **Google AdSense support**: `AdSenseSlot.astro` component + `PUBLIC_ADSENSE_CLIENT` env var. Coexists with the iframe ad isolation setup.
+
+### Changed
+- Homepage `displayType` enum renamed to generic names (`code-cards`→`badge-list`, etc.).
+- CSS theme variable renamed: `--nav-theme` → `--brand`.
+- Homepage JSON field names renamed (`eyebrow`→`badge`, `primaryCta`→`ctaPrimary`, etc.).
+- Demo boss renamed: `gelum`→`emberfang`, `pyra`→`stormcaller`.
+- `skinning.md` → `apply-template.md` (restructured as file-organized config reference).
+- Ad HTML templates: ad network domain changed to placeholder.
+- SEO docs: all knowledge claims cite public authoritative sources.
 
 ## [1.0.0] — 2026-08-13
 
@@ -60,7 +81,7 @@ This release covers everything since v0.2.0: the full PRD roadmap (v1.1–v2.0) 
 - Astro 5 static site (`output: 'static'`, zero adapter, Cloudflare Pages native)
 - Content Layer API + Zod schema for type-safe MDX articles
 - i18n: as-needed prefix (English no prefix, others prefixed) with single-article English fallback
-- Homepage: 8 JSON-driven modules with 4 displayTypes (code-cards / step-by-step / tier-grid / card-list)
+- Homepage: 8 JSON-driven modules with 4 displayTypes (badge-list / steps / ranked-grid / labeled-cards)
 - SEO: Organization / WebSite / Article / BreadcrumbList / ItemList / FAQPage JSON-LD, hreflang, dynamic sitemap, robots.txt
 - Theme: CSS variable theming (4 lines to re-theme) + dark mode with no-FOUC
 - Ads: 广告 iframe isolation (6 slots), Sticky 320×50 with dismiss button, env-var gated
@@ -69,6 +90,8 @@ This release covers everything since v0.2.0: the full PRD roadmap (v1.1–v2.0) 
 - Docs: PRD (1600+ lines), deployment, apply-template (4-step guide), content-format, seo, ads, migration-from-nextjs
 - Build: 27 pages, typecheck 0 errors
 
-[Unreleased]: https://github.com/PNGTRID/AnvilWiki/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/PNGTRID/AnvilWiki/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/PNGTRID/AnvilWiki/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/PNGTRID/AnvilWiki/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/PNGTRID/AnvilWiki/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/PNGTRID/AnvilWiki/releases/tag/v0.1.0

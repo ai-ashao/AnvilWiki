@@ -61,7 +61,7 @@ Cloudflare 会自动检测 Astro，但请确认以下设置：
 
 | 变量名                    | 值                            | 说明                                   |
 | ------------------------- | ----------------------------- | -------------------------------------- |
-| `NODE_VERSION`            | `22`                          | 与 `.nvmrc` 和 `package.json` 保持一致 |
+| `NODE_VERSION`            | `22`                          | 与项目配置一致（pnpm 11 需要 ≥22.13）  |
 | `SITE_URL`                | `https://<project>.pages.dev` | **先用临时域名**，必须含 `https://` 前缀 |
 | `PUBLIC_AD_MOBILE_320X50` | （你的 广告 key）         | 可选，留空则不显示广告                 |
 
@@ -192,7 +192,7 @@ AnvilWiki 是纯静态站点（`dist/`），可以部署到任何静态托管：
 | `PUBLIC_AD_BANNER_300X250`  | 可选 | 中等矩形 key                                           |
 | `PUBLIC_AD_BANNER_468X60`   | 可选 | 经典横幅 key                                           |
 | `PUBLIC_AD_NATIVE_BANNER`   | 可选 | Native banner key                                      |
-| `PUBLIC_GOOGLE_ADSENSE_ID`  | 可选 | AdSense 自动广告 ID                                    |
+| `PUBLIC_ADSENSE_CLIENT`  | 可选 | AdSense 自动广告 ID                                    |
 | `PUBLIC_GA_ID`              | 可选 | Google Analytics ID                                    |
 
 完整清单见 [`.env.example`](../.env.example)。所有广告变量**留空时对应广告位不渲染**——新手可以先不配广告把站上线，后续再加。

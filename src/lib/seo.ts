@@ -32,11 +32,6 @@ export function websiteJsonLd(locale: Locale = defaultLocale) {
     url: siteUrl,
     description: site.description,
     inLanguage: locale,
-    potentialAction: {
-      '@type': 'SearchAction',
-      target: `${siteUrl}/search?q={search_term_string}`,
-      'query-input': 'required name=search_term_string',
-    },
   };
 }
 
@@ -184,6 +179,21 @@ export function faqPageJsonLd(items: Array<{ question: string; answer: string }>
 /** Build the <title> string with consistent suffix. */
 export function pageTitle(title: string): string {
   return `${title} — ${site.name}`;
+}
+
+/** VideoGame JSON-LD — injected on the homepage for game entity recognition. */
+export function videoGameJsonLd() {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'VideoGame',
+    name: site.game.name,
+    description: site.description,
+    url: siteUrl,
+    genre: site.game.genre,
+    gamePlatform: site.game.platform,
+    publisher: { '@type': 'Organization', name: site.game.developer },
+    ...(site.game.releaseDate ? { datePublished: site.game.releaseDate } : {}),
+  };
 }
 
 /** Available locales for hreflang generation (imported by pages). */
