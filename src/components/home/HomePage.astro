@@ -38,15 +38,18 @@ interface Props {
 const { locale, jsonLd = [], alternates = [] } = Astro.props;
 const ui = getUi(locale);
 const home = ui.home as any;
-const shared = ui.shared as Record<string, string>;
+const shared = ui.shared as unknown as Record<string, any>;
 
 const recent = await getRecentEntries(locale, 6);
 
 const meta = home.meta ?? { title: site.name, description: site.description };
 const hero = home.hero ?? {};
-const updates = home.updates ?? { title: 'Recent Updates' };
+// Shape-only defaults: getUi() deep-merges over en.json, so titles/labels are
+// guaranteed present — no hardcoded English fallbacks (UI text lives in the
+// locale JSON per the template's own rule).
+const updates = home.updates ?? {};
 const start = home.start ?? { cards: [] };
-const popular = home.popular ?? { title: 'Trending Now', quickLinks: [] };
+const popular = home.popular ?? { quickLinks: [] };
 const explore = home.explore ?? { modules: [] };
 const closingCta = home.closingCta ?? {};
 
@@ -135,7 +138,7 @@ function trendingLabel(link: QuickLink): string {
       <div class="lg:col-span-2">
         <div class="flex items-baseline justify-between">
           <h2 class="text-2xl font-bold">{updates.title}</h2>
-          <a href={listPath('guides', locale)} class="text-sm text-foreground hover:text-nav hover:underline"
+          <a href={listPath(NAVIGATION_CONFIG[1]?.key ?? 'guides', locale)} class="text-sm text-foreground hover:text-nav hover:underline"
             >{shared.browseAll}</a
           >
         </div>

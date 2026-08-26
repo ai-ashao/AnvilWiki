@@ -7,10 +7,16 @@
  *   pnpm apply-template                   interactive: prompts for game metadata, theme color,
  *                               locales, and categories; rewrites the config files
  *                               (site.ts, navigation.ts, globals.css, routing.ts,
- *                               ui.ts, locales/*.json, manifest.json) and clears
- *                               demo content (src/content/wiki/* MDX).
+ *                               ui.ts, locales/*.json, manifest.json), clears
+ *                               demo content (src/content/wiki/* MDX), and removes
+ *                               the project landing page + in-site docs center
+ *                               (/landing, /landing/docs) and its assets
+ *                               (public/images/showcase/, wechat QR) — not
+ *                               needed by fork users; docs/handbook markdown
+ *                               is kept as repo docs.
  *   pnpm apply-template --dry-run         print every planned change, write nothing.
  *   pnpm apply-template --no-clear-content  keep demo MDX files in place.
+ *   pnpm apply-template --keep-landing      keep the project landing page (/landing).
  *
  * What this does NOT do (left for the user, see docs/apply-template.md):
  *   - Homepage modules (home.hero / start / explore / faq in locales)
@@ -31,6 +37,7 @@ const ROOT = process.cwd();
 const ARGS = process.argv.slice(2);
 const DRY_RUN = ARGS.includes('--dry-run') || ARGS.includes('-n');
 const KEEP_CONTENT = ARGS.includes('--no-clear-content');
+const KEEP_LANDING = ARGS.includes('--keep-landing');
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -153,6 +160,116 @@ interface SkinInput {
   locales: string[];
   categories: { key: string; icon: string }[];
   clearContent: boolean;
+  clearLanding: boolean;
+  /** Homepage preset: 'codes' | 'guides' | 'keep' */
+  homePreset: 'codes' | 'guides' | 'keep';
+}
+
+/**
+ * Build a starter `home` namespace skeleton for a preset.
+ * All copy uses the game name the user entered — placeholders to refine,
+ * not demo-game leftovers. Module hrefs point at the categories they chose.
+ */
+function buildHomePreset(input: SkinInput): Record<string, unknown> | null {
+  if (input.homePreset === 'keep') return null;
+  const cats = input.categories.map((c) => c.key);
+  const first = cats[0] ?? 'guides';
+
+  const common = {
+    meta: { watermark: input.gameName },
+    updates: { badge: 'Fresh', title: 'Recent updates' },
+    popular: {
+      badge: 'Popular',
+      title: 'Most read',
+      quickLinks: cats.slice(0, 3).map((c) => ({ label: c, href: `/${c}` })),
+    },
+    closingCta: {
+      title: `Start your ${input.gameName} journey`,
+      description: `Bookmark this wiki and check back after every game update.`,
+      primary: { label: 'Browse all', href: `/${first}` },
+      secondary: { label: 'Official site', href: input.officialUrl },
+    },
+  };
+
+  if (input.homePreset === 'codes') {
+    return {
+      ...common,
+      hero: {
+        badge: 'Updated daily',
+        title: `${input.gameName} Codes`,
+        description: `All working ${input.gameName} codes, tested daily. Plus guides and tier lists.`,
+        ctaPrimary: { label: 'All codes', href: '/codes' },
+        ctaSecondary: { label: 'Guides', href: '/guides' },
+      },
+      start: {
+        badge: 'Quick start',
+        title: 'Jump straight in',
+        cards: [
+          { title: 'Codes', description: 'Free gold, XP, cosmetics', icon: 'lucide:gift', href: '/codes' },
+          { title: 'Bosses', description: 'Phase-by-phase strategy', icon: 'lucide:swords', href: '/bosses' },
+          { title: 'Tier list', description: 'Best weapons ranked', icon: 'lucide:bar-chart-3', href: `/${cats.find((c) => c !== 'codes') ?? first}` },
+        ],
+      },
+      explore: {
+        title: 'Explore',
+        description: 'The essentials',
+        modules: [
+          {
+            order: 1,
+            name: 'Active codes',
+            description: 'Redeem before they expire',
+            href: '/codes',
+            displayType: 'badge-list',
+            highlights: [
+              { label: 'CODE-PLACEHOLDER', detail: 'Tap to copy on the codes page', badge: 'NEW' },
+            ],
+          },
+        ],
+      },
+      faq: { title: 'FAQ', description: 'Common questions', items: [] },
+    };
+  }
+
+  // 'guides' preset
+  return {
+    ...common,
+    hero: {
+      badge: input.gameName,
+      title: `${input.gameName} Wiki`,
+      description: `Complete ${input.gameName} guides — bosses, items, and progression.`,
+      ctaPrimary: { label: 'Beginner guide', href: '/guides' },
+      ctaSecondary: { label: 'Browse all', href: `/${first}` },
+    },
+    start: {
+      badge: 'Quick start',
+      title: 'New here?',
+      cards: cats.slice(0, 4).map((c) => ({
+        title: c[0].toUpperCase() + c.slice(1),
+        description: `Browse ${c}`,
+        icon: 'lucide:book-open',
+        href: `/${c}`,
+      })),
+    },
+    explore: {
+      title: 'Explore',
+      description: 'Content modules',
+      modules: [
+        {
+          order: 1,
+          name: 'Getting started',
+          description: 'Step-by-step progression',
+          href: '/guides',
+          displayType: 'steps',
+          highlights: [
+            { label: 'Step 1', detail: 'Finish the tutorial', badge: '5 min' },
+            { label: 'Step 2', detail: 'Claim starter codes', badge: '1 min' },
+            { label: 'Step 3', detail: 'First boss run', badge: '15 min' },
+          ],
+        },
+      ],
+    },
+    faq: { title: 'FAQ', description: 'Common questions', items: [] },
+  };
 }
 
 function rewriteSiteTs(input: SkinInput): string {
@@ -176,6 +293,10 @@ function rewriteSiteTs(input: SkinInput): string {
     genre: '${input.genre}',
     releaseDate: '${input.releaseDate}',
   },
+  // og:image dims of the SHIPPED hero.webp — if you replace public/images/hero.webp,
+  // update these in src/config/site.ts to match (wrong dims mis-crop share cards).
+  ogImageWidth: 1200,
+  ogImageHeight: 630,
 };`;
   const siteRe = /export const site: SiteConfig = \{[\s\S]*?\n\};/;
   if (!siteRe.test(src)) {
@@ -213,25 +334,51 @@ function rewriteGlobalsCss(input: SkinInput): string {
   const lightAlt = hslStr(c, 10);
   const darkMain = `${c.h} ${Math.max(0, c.s - 5)}% ${Math.max(0, c.l - 4)}%`;
   const darkAlt = `${c.h} ${Math.max(0, c.s - 5)}% ${Math.max(0, c.l - 4 + 10)}%`;
-  const newVars = `  :root {
-    /* Light mode theme color. */
-    --brand: ${lightMain};
-    --brand-light: ${lightAlt};
-  }
 
-  .dark {
-    /* Dark mode theme color — slightly deeper. */
-    --brand: ${darkMain};
-    --brand-light: ${darkAlt};
-  }`;
-  // The original :root and .dark blocks live inside @layer base { ... }.
-  // Replace from the first `:root {` through the closing of `.dark { ... }`.
-  const themeRe = /  :root \{[\s\S]*?\.dark \{[\s\S]*?\n  \}/;
-  if (!themeRe.test(src)) {
-    console.error(`❌ Could not locate :root/.dark theme block in ${filePath}. Aborting.`);
+  // Replace ONLY the 4 --brand / --brand-light value lines, line-wise, so the
+  // rewrite still works if the user has added custom variables or changed
+  // indentation inside :root / .dark (previous whole-block regex broke then).
+  const lines = src.split('\n');
+  let block: 'root' | 'dark' | null = null;
+  let replaced = 0;
+  const out = lines.map((line) => {
+    if (/^\s*:root\s*\{/.test(line)) block = 'root';
+    else if (/^\s*\.dark\s*\{/.test(line)) block = 'dark';
+    else if (block && /^\s*\}/.test(line)) block = null;
+    else if (block === 'root' && /^\s*--brand:/.test(line)) {
+      replaced++;
+      return line.replace(/(--brand:\s*)[^;]+;/, `$1${lightMain};`);
+    } else if (block === 'root' && /^\s*--brand-light:/.test(line)) {
+      replaced++;
+      return line.replace(/(--brand-light:\s*)[^;]+;/, `$1${lightAlt};`);
+    } else if (block === 'root' && /^\s*--brand-h:/.test(line)) {
+      replaced++;
+      return line.replace(/(--brand-h:\s*)[^;]+;/, `$1${c.h};`);
+    } else if (block === 'root' && /^\s*--brand-s:/.test(line)) {
+      replaced++;
+      return line.replace(/(--brand-s:\s*)[^;]+;/, `$1${c.s}%;`);
+    } else if (block === 'dark' && /^\s*--brand:/.test(line)) {
+      replaced++;
+      return line.replace(/(--brand:\s*)[^;]+;/, `$1${darkMain};`);
+    } else if (block === 'dark' && /^\s*--brand-light:/.test(line)) {
+      replaced++;
+      return line.replace(/(--brand-light:\s*)[^;]+;/, `$1${darkAlt};`);
+    } else if (block === 'dark' && /^\s*--brand-h:/.test(line)) {
+      replaced++;
+      return line.replace(/(--brand-h:\s*)[^;]+;/, `$1${c.h};`);
+    } else if (block === 'dark' && /^\s*--brand-s:/.test(line)) {
+      replaced++;
+      return line.replace(/(--brand-s:\s*)[^;]+;/, `$1${Math.max(0, c.s - 5)}%;`);
+    }
+    return line;
+  });
+  if (replaced < 6) {
+    console.error(
+      `❌ Expected 6+ --brand/--brand-light/--brand-h/--brand-s lines in ${filePath}, found ${replaced}. Aborting.`,
+    );
     process.exit(1);
   }
-  return src.replace(themeRe, newVars);
+  return out.join('\n');
 }
 
 function rewriteRoutingTs(input: SkinInput): string {
@@ -296,7 +443,7 @@ function rewriteUiTs(input: SkinInput): string {
   return updated;
 }
 
-function rewriteLocaleJson(input: SkinInput, locale: string, existing?: string): string {
+function rewriteLocaleJson(input: SkinInput, _locale: string, existing?: string): string {
   // Start from existing (if any) or a minimal skeleton; reset site/footer/nav/overview.
   let obj: Record<string, unknown> = {};
   if (existing) {
@@ -319,7 +466,53 @@ function rewriteLocaleJson(input: SkinInput, locale: string, existing?: string):
   // Clear nav + overview so the user re-fills them once categories are known.
   obj.nav = {};
   obj.overview = {};
+  // Homepage preset skeleton (unless 'keep').
+  const home = buildHomePreset(input);
+  if (home) obj.home = home;
   return JSON.stringify(obj, null, 2) + '\n';
+}
+
+/**
+ * Reset wrangler.toml [vars] for the forker's own site.
+ *
+ * Why: when wrangler.toml exists it is the SOLE source of truth for the
+ * Cloudflare Pages project env (dashboard UI is ignored). The shipped file
+ * carries the DEMO site's Giscus config — an unedited fork would silently
+ * point its comment section at the original repo's GitHub Discussions.
+ * We rewrite SITE_URL to the forker's domain and blank the Giscus values.
+ */
+function rewriteWranglerVars(input: SkinInput): string | null {
+  const filePath = 'wrangler.toml';
+  if (!fs.existsSync(path.resolve(ROOT, filePath))) return null;
+  const src = read(filePath);
+  const newVars = `[vars]
+# Site (must include https:// protocol — Astro validates this as a URL)
+SITE_URL = "https://${input.domain}"
+# Giscus comments — blank = comments disabled until you fill your own values.
+# See docs/comments.md for how to get these from giscus.app.
+PUBLIC_GISCUS_REPO = ""
+PUBLIC_GISCUS_REPO_ID = ""
+PUBLIC_GISCUS_CATEGORY = ""
+PUBLIC_GISCUS_CATEGORY_ID = ""
+PUBLIC_GISCUS_MAPPING = "pathname"
+# Sponsor card — blank = disabled. Fill PUBLIC_SPONSOR_URL to enable.
+PUBLIC_SPONSOR_URL = ""
+PUBLIC_SPONSOR_IMAGE_URL = ""
+# Cloudflare Web Analytics — blank = disabled.
+PUBLIC_CF_BEACON_TOKEN = ""
+# Optional slots (empty = disabled) — fill HERE, not the dashboard:
+#PUBLIC_ADSENSE_CLIENT = ""
+#PUBLIC_ADSENSE_SLOT_STICKY = ""
+#PUBLIC_ADSENSE_SLOT_SIDEBAR = ""
+#PUBLIC_ADSENSE_SLOT_INCONTENT = ""
+#PUBLIC_GA_ID = ""
+#PUBLIC_GSC_VERIFICATION = ""`;
+  const varsRe = /\[vars\][\s\S]*?(?=\n*\[|\n*$)/;
+  if (!varsRe.test(src)) {
+    console.warn(`⚠️ Could not find [vars] section in ${filePath} — edit it manually.`);
+    return null;
+  }
+  return src.replace(varsRe, newVars);
 }
 
 function rewriteManifest(input: SkinInput): string {
@@ -357,6 +550,138 @@ function clearDemoContent() {
           removed++;
         }
       }
+    }
+  }
+  removed += clearDemoAssets();
+  return removed;
+}
+
+/**
+ * Demo article artwork — the 5 covers, the whole demo gallery dir, and the
+ * inline demo card images. Deleted BY NAME (not a wildcard) so covers a fork
+ * user already replaced with their own art are never touched. Keep in sync
+ * with the "Clear demo content" step in .github/workflows/setup.yml.
+ */
+const DEMO_ASSET_DIRS = ['src/assets/gallery', 'public/images/articles'];
+const DEMO_COVERS = [
+  'beginner-guide-cover.png',
+  'emberfang-cover.png',
+  'stormcaller-cover.png',
+  'weapon-tier-list-cover.png',
+  'codes-cover.png',
+];
+
+function clearDemoAssets() {
+  let removed = 0;
+  for (const dir of DEMO_ASSET_DIRS) {
+    const dirPath = path.resolve(ROOT, dir);
+    if (!fs.existsSync(dirPath)) continue;
+    if (!DRY_RUN) fs.rmSync(dirPath, { recursive: true, force: true });
+    removed++;
+  }
+  const covers = path.resolve(ROOT, 'src/assets/covers');
+  if (fs.existsSync(covers)) {
+    for (const file of fs.readdirSync(covers)) {
+      if (DEMO_COVERS.includes(file)) {
+        if (!DRY_RUN) fs.unlinkSync(path.join(covers, file));
+        removed++;
+      }
+    }
+  }
+  return removed;
+}
+
+/**
+ * After clearing demo content, drop one scaffold article per chosen category
+ * (English) so the site builds and list pages aren't empty. The scaffold
+ * passes schema validation (description ≥ 40 chars) out of the box.
+ */
+function scaffoldContent(categories: { key: string }[]): number {
+  const enBase = path.resolve(ROOT, 'src/content/wiki/en');
+  // "tier-list" → "Tier List", so scaffold titles read naturally.
+  const titleCase = (key: string) =>
+    key
+      .split(/[-_]/)
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(' ');
+  let created = 0;
+  for (const { key } of categories) {
+    const dir = path.join(enBase, key);
+    if (!DRY_RUN) fs.mkdirSync(dir, { recursive: true });
+    const file = path.join(dir, 'getting-started.mdx');
+    if (!DRY_RUN && !fs.existsSync(file)) {
+      fs.writeFileSync(
+        file,
+        `---
+title: "Getting Started with ${titleCase(key)} Guide"
+description: "A starter article for the ${key} category. Replace this scaffold with your real ${key} content — keep the description between 40 and 165 characters for SEO."
+category: "${key}"
+date: ${new Date().toISOString().slice(0, 10)}
+tags: []
+---
+
+## First section — write question-shaped headings
+
+Replace this scaffold with your article. Remember: no H1 in the body (it is
+rendered from the frontmatter title), and start each section with a direct
+40-60 word answer for AI search engines.
+`,
+        'utf8',
+      );
+      created++;
+    }
+  }
+  return created;
+}
+
+/**
+ * Files/dirs that make up the project landing page (/landing) and its in-site
+ * docs center (/landing/docs + /zh/landing/docs).
+ * Fork users don't need these routes — they are about the AnvilWiki project
+ * itself, not their game wiki. The CLI removes them automatically.
+ *
+ * NOTE: docs/handbook/ (the handbook markdown SOURCE) is deliberately NOT in
+ * this list — the learning manual's SOPs and AI prompts stay useful to fork
+ * users as repo docs; only the landing ROUTES above are removed. The handbook
+ * collection in src/content.config.ts becomes an unloaded leftover (its glob
+ * base still exists), which builds cleanly.
+ *
+ * Directory counts in removeLandingPage() are top-level entries (approximate).
+ */
+const LANDING_PATHS = [
+  'src/components/landing', // directory (16 components incl. docs hub/chapter/nav/comparison)
+  'src/config/landing.ts',
+  'src/pages/landing.astro', // file — coexists with the src/pages/landing/ dir
+  'src/pages/landing', // directory (docs hub + chapter routes)
+  'src/pages/zh/landing.astro', // file — coexists with the src/pages/zh/landing/ dir
+  'src/pages/zh/landing', // directory (zh docs routes)
+  'public/images/showcase', // directory (demo screenshots + community site screenshots — landing only)
+  'public/images/wechat-qr.jpg', // maintainer's personal QR — not needed by forks
+];
+
+function removeLandingPage(): number {
+  let removed = 0;
+  for (const rel of LANDING_PATHS) {
+    const abs = path.resolve(ROOT, rel);
+    if (!fs.existsSync(abs)) continue;
+    const stat = fs.statSync(abs);
+    if (stat.isDirectory()) {
+      if (!DRY_RUN) fs.rmSync(abs, { recursive: true, force: true });
+      removed += fs.readdirSync(abs).length;
+    } else {
+      if (!DRY_RUN) fs.unlinkSync(abs);
+      removed++;
+    }
+  }
+  // Also disable the demo header's "back to landing" link so the removal is
+  // complete (the flag lives in project.ts, which survives this CLI).
+  const projectPath = path.resolve(ROOT, 'src/config/project.ts');
+  if (fs.existsSync(projectPath)) {
+    const src = read('src/config/project.ts');
+    const flipped = src.replace('landingLinkEnabled = true', 'landingLinkEnabled = false');
+    if (flipped !== src) {
+      if (!DRY_RUN) fs.writeFileSync(projectPath, flipped, 'utf8');
+      removed++;
     }
   }
   return removed;
@@ -464,6 +789,26 @@ async function main() {
     clearContent = await askBool(rl, 'Clear demo content?', false);
   }
 
+  console.log('\n' + '━'.repeat(60));
+  console.log('🏠  Homepage preset');
+  console.log('━'.repeat(60));
+  console.log('   1) codes     — hero "All Codes", badge-list codes module (codes-driven sites)');
+  console.log('   2) guides    — hero wiki-style, steps module (guide-driven sites)');
+  console.log('   3) keep      — keep the demo homepage JSON as a starting point');
+  const presetAnswer = (await ask(rl, 'Preset [1/2/3]', '1')).trim();
+  const homePreset: 'codes' | 'guides' | 'keep' =
+    presetAnswer === '2' ? 'guides' : presetAnswer === '3' ? 'keep' : 'codes';
+
+  let clearLanding = false;
+  if (!KEEP_LANDING) {
+    console.log('\n' + '━'.repeat(60));
+    console.log('🌐  PROJECT LANDING PAGE');
+    console.log('━'.repeat(60));
+    console.log('   /landing is a marketing page for the AnvilWiki project itself.');
+    console.log('   Your game wiki does not need it. Removing it keeps your repo clean.');
+    clearLanding = await askBool(rl, 'Remove the project landing page (/landing)?', true);
+  }
+
   rl.close();
 
   // --- Summarize planned changes -----------------------------------------
@@ -483,6 +828,8 @@ async function main() {
     locales: uniqueLocales,
     categories,
     clearContent,
+    clearLanding,
+    homePreset,
   };
 
   console.log('\n' + '━'.repeat(60));
@@ -495,6 +842,7 @@ async function main() {
   console.log(`   Locales:     ${uniqueLocales.join(', ')}`);
   console.log(`   Categories:  ${categories.map((c) => c.key).join(', ') || '(none)'}`);
   console.log(`   Clear demo:  ${clearContent ? 'YES' : 'no'}`);
+  console.log(`   Remove /landing: ${skinInput.clearLanding ? 'YES' : 'no'}`);
   console.log('   Files to write:');
   console.log('     - src/config/site.ts');
   console.log('     - src/config/navigation.ts');
@@ -503,6 +851,11 @@ async function main() {
   console.log('     - src/i18n/ui.ts');
   console.log(`     - src/locales/{${uniqueLocales.join(',')}}.json`);
   console.log('     - public/manifest.json');
+  if (fs.existsSync(path.resolve(ROOT, 'wrangler.toml'))) {
+    console.log('     - wrangler.toml ([vars] reset to your domain, demo Giscus cleared)');
+  } else {
+    console.log('     - Cloudflare Dashboard: configure SITE_URL after deployment');
+  }
 
   if (!DRY_RUN) {
     const proceed = await (async () => {
@@ -551,9 +904,34 @@ async function main() {
   write('public/manifest.json', rewriteManifest(skinInput));
   console.log('   ✅ public/manifest.json');
 
+  const wrangler = rewriteWranglerVars(skinInput);
+  if (wrangler !== null) {
+    write('wrangler.toml', wrangler);
+    console.log('   ✅ wrangler.toml ([vars] reset — demo Giscus config cleared)');
+  }
+
+  // Reset the demo author registry so fork sites don't inherit demo authors.
+  const authorsPath = 'src/config/authors.ts';
+  if (fs.existsSync(path.resolve(ROOT, authorsPath))) {
+    const src = read(authorsPath).replace(/\n\s*\/\/ DEMO .*?\n\s*'[^']+'.*?\{[^}]*\},\n/, '\n');
+    write(authorsPath, src);
+    console.log('   ✅ src/config/authors.ts (demo author removed)');
+  }
+
   if (clearContent) {
     const n = clearDemoContent();
     console.log(`   🗑️  Removed ${n} demo MDX file${n === 1 ? '' : 's'} under src/content/wiki/`);
+    if (categories.length > 0) {
+      const s = scaffoldContent(categories);
+      console.log(`   📄 Created ${s} scaffold article${s === 1 ? '' : 's'} (one per category, en/)`);
+    }
+  }
+
+  if (skinInput.clearLanding) {
+    const n = removeLandingPage();
+    if (n > 0) {
+      console.log(`   🗑️  Removed ${n} project landing page file${n === 1 ? '' : 's'} (src/components/landing/, src/config/landing.ts, src/pages/landing* incl. the /landing/docs center, public/images/showcase/ + wechat-qr.jpg; docs/handbook markdown stays as repo docs)`);
+    }
   }
 
   // --- Next steps --------------------------------------------------------
@@ -561,8 +939,13 @@ async function main() {
   console.log('✅ Base config complete.');
   console.log('━'.repeat(60));
   console.log('\n📌 Remaining tasks (see docs/apply-template.md):');
-  console.log('   • Replace favicon files in public/ and hero.webp / hero.svg.');
-  console.log('           (CLI cannot generate binary assets.)');
+  console.log('   • Replace the icon set — your site still shows the demo anvil icons.');
+  console.log('           Generate a full set from one image at https://favicon.io/favicon-converter/,');
+  console.log('           then drag the files into public/ overwriting: favicon.ico, favicon.svg,');
+  console.log('           favicon-16x16.png, favicon-32x32.png, apple-touch-icon.png,');
+  console.log('           android-chrome-192x192.png, android-chrome-512x512.png.');
+  console.log('           Same for the homepage hero image: public/images/hero.webp / hero.svg.');
+  console.log('           (CLI cannot generate binary assets — see the learning manual, chapter 3, step 5.)');
   console.log('   • Fill homepage modules in src/locales/<locale>.json');
   console.log('           (home.hero / start / explore / faq / updates).');
   console.log('   • Add article MDX under src/content/wiki/<locale>/<category>/.');

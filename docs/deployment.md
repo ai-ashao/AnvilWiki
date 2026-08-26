@@ -63,7 +63,7 @@ Cloudflare 会自动检测 Astro，但请确认以下设置：
 | ------------------------- | ----------------------------- | -------------------------------------- |
 | `NODE_VERSION`            | `22`                          | 与项目配置一致（pnpm 11 需要 ≥22.13）  |
 | `SITE_URL`                | `https://<project>.pages.dev` | **先用临时域名**，必须含 `https://` 前缀 |
-| `PUBLIC_AD_MOBILE_320X50` | （你的 广告 key）         | 可选，留空则不显示广告                 |
+| `PUBLIC_ADSENSE_CLIENT`    | （你的 AdSense Publisher ID） | 可选，留空则不显示广告                 |
 
 > ⚠️ **`SITE_URL` 必须含 `https://` 前缀**（如 `https://anvilquestwiki.wiki`，不是裸域名 `anvilquestwiki.wiki`）。Astro 把它当 URL 解析，裸域名会让 build 报 `Invalid url`。它影响 sitemap、og:image、robots.txt 里所有绝对 URL 的生成。
 
@@ -77,7 +77,7 @@ Cloudflare 会自动检测 Astro，但请确认以下设置：
 2. 运行 `pnpm install` + `pnpm build`
 3. 把 `dist/` 部署到全球 CDN
 
-构建日志里看到 `Complete!` 和 `27 page(s) built` 就成功了。整个过程 2-3 分钟。
+构建日志里看到 `Complete!` 就成功了（页数随内容增长，不用纠结具体数字）。整个过程 2-3 分钟。
 
 ### Step 5 — 访问站点
 
@@ -179,23 +179,28 @@ AnvilWiki 是纯静态站点（`dist/`），可以部署到任何静态托管：
 
 ## 环境变量清单
 
-在 Pages → **Settings** → **Environment variables** 配置。支持 Production / Preview 两套。
+> 本 Fork 默认不提交 `wrangler.toml`，所以下表变量在 Pages → **Settings** → **Environment variables** 配置，支持 Production / Preview 两套。如果以后自行添加 `wrangler.toml`，它会接管 Pages 环境变量，届时必须把所需变量全部写进它的 `[vars]` 段。
 
 | 变量                        | 必填 | 说明                                                   |
 | --------------------------- | ---- | ------------------------------------------------------ |
-| `SITE_URL`                  | ✅   | 站点绝对 URL（无尾斜杠），影响 sitemap/og:image/robots |
-| `NODE_VERSION`              | ✅   | 固定 `22`                                              |
-| `PUBLIC_AD_MOBILE_320X50`   | 可选 | 广告网络 320×50 Sticky 广告 key                        |
-| `PUBLIC_AD_SIDEBAR_160X600` | 可选 | 侧边栏竖幅 key                                         |
-| `PUBLIC_AD_SIDEBAR_160X300` | 可选 | 侧边栏半高 key                                         |
-| `PUBLIC_AD_BANNER_728X90`   | 可选 | 大横幅 key                                             |
-| `PUBLIC_AD_BANNER_300X250`  | 可选 | 中等矩形 key                                           |
-| `PUBLIC_AD_BANNER_468X60`   | 可选 | 经典横幅 key                                           |
-| `PUBLIC_AD_NATIVE_BANNER`   | 可选 | Native banner key                                      |
-| `PUBLIC_ADSENSE_CLIENT`  | 可选 | AdSense 自动广告 ID                                    |
-| `PUBLIC_GA_ID`              | 可选 | Google Analytics ID                                    |
+| `SITE_URL`                  | ✅   | 站点绝对 URL（含 `https://`，无尾斜杠），影响 sitemap/og:image/robots |
+| `NODE_VERSION`              | ✅   | 固定 `22`（pnpm 11 要求 ≥22.13）                       |
+| `PUBLIC_ADSENSE_CLIENT`      | 可选 | AdSense Publisher ID（`ca-pub-XXXXXXXXXXXXXXXX`）      |
+| `PUBLIC_ADSENSE_SLOT_STICKY` | 可选 | Sticky 粘顶横幅 slot ID                                |
+| `PUBLIC_ADSENSE_SLOT_SIDEBAR`| 可选 | Sidebar 桌面端侧边栏 slot ID                           |
+| `PUBLIC_ADSENSE_SLOT_INCONTENT` | 可选 | InContent 文章内 slot ID                            |
+| `PUBLIC_GA_ID`              | 可选 | Google Analytics ID（有 cookie，经同意横幅门控）       |
+| `PUBLIC_CF_BEACON_TOKEN`    | 可选 | Cloudflare Web Analytics beacon token（无 cookie）     |
+| `PUBLIC_GSC_VERIFICATION`   | 可选 | Google Search Console 验证 meta token                 |
+| `PUBLIC_SPONSOR_URL`        | 可选 | 赞助/捐赠卡链接（空 = 不渲染）                         |
+| `PUBLIC_SPONSOR_IMAGE_URL`  | 可选 | 赞助卡二维码/横幅图（空 = 只显示文字卡）               |
+| `PUBLIC_GISCUS_REPO`        | 可选 | Giscus 仓库（`owner/repo`，4 个必填项之一）            |
+| `PUBLIC_GISCUS_REPO_ID`     | 可选 | Giscus 仓库 ID（4 个必填项之一）                       |
+| `PUBLIC_GISCUS_CATEGORY`    | 可选 | Giscus Discussion 分类名（4 个必填项之一）             |
+| `PUBLIC_GISCUS_CATEGORY_ID` | 可选 | Giscus 分类 ID（4 个必填项之一）                       |
+| `PUBLIC_GISCUS_MAPPING`     | 可选 | Giscus 页面映射方式，默认 `pathname`（唯一可选项）     |
 
-完整清单见 [`.env.example`](../.env.example)。所有广告变量**留空时对应广告位不渲染**——新手可以先不配广告把站上线，后续再加。
+完整说明见 [`.env.example`](../.env.example)。所有广告/评论变量**留空时对应组件不渲染**——新手可以先不配广告把站上线，后续再加。
 
 ---
 
@@ -221,11 +226,11 @@ curl -I https://<你的域名>/ja/   # 日文首页
 curl -I https://<你的域名>/bosses/  # 英文列表页
 
 # 5. 文章页正常
-curl -I https://<你的域名>/bosses/emberfang/
+curl -I https://<你的域名>/bosses/emberfang
 # 期望: 200，不是 404
 
 # 6. 法律页可访问
-curl -I https://<你的域名>/about/
+curl -I https://<你的域名>/about
 curl -I https://<你的域名>/privacy-policy/
 ```
 
@@ -245,6 +250,42 @@ curl -I https://<你的域名>/privacy-policy/
 1. **PageSpeed Insights**：https://pagespeed.web.dev
    - 输入你的域名，Lighthouse Performance 应该 ≥ 95
    - Core Web Vitals 全绿（LCP < 2.5s，CLS < 0.1）
+
+---
+
+## 上线后的数据复盘（3-7 天）
+
+上线不是终点。**上线后观察 3-7 天，做第一次数据复盘**，对着下面的数值表逐项检查。数据来源：GSC「效果」报告（CTR、点击）；Cloudflare Web Analytics（变量 `PUBLIC_CF_BEACON_TOKEN`，无 cookie）或 GA4（浏览深度）。
+
+| 指标 | 及格线 / 目标 | 去哪看 | 不及格怎么办 |
+| --- | --- | --- | --- |
+| CTR（点击率） | ≥ 2% 算合格 | GSC 效果报告 | 低于 2%：检查 TDH（title、description、H1 三个标签）和标题吸引力——标题含不含"游戏名 + 关键词"、有没有让人想点进去的钩子 |
+| 每日点击 | 1000 次/天是目标 | GSC 效果报告 | 新站从个位数涨起是正常的；复盘看的不是绝对值，是趋势——持续在涨就对，连续一周不动才需要动作（补页面/换词） |
+| 人均浏览页数 | ≥ 1.5 页 | CF Web Analytics / GA4 | < 1.5 页 = 内链不够：每篇文章补 1-2 条指向相关文章的内链（codes 页 ↔ 攻略页互指） |
+| 每周新增内页 | 10+ 篇 | 自己数 | **只加不改旧页**——新增页面是给 Google 的增量信号，复盘期别顺手大改已收录的页面 |
+
+> 用了 [anvilwiki-ops](./multi-site.md) 的话，一条命令拉数：`anvil-ops metrics`（聚合 GSC + Cloudflare Web Analytics）。
+
+---
+
+## 用 Microsoft Clarity 看用户在你站点上干什么（免费）
+
+数字告诉你"有多少人来了"，**Clarity 告诉你"他们在页面上干了什么"**——免费的点击热力图 + 用户操作录屏。新手最有用的两个问题它都能答：用户**卡在哪**、**广告位有没有被点**。
+
+### 接入（10 分钟）
+
+1. 打开 [clarity.microsoft.com](https://clarity.microsoft.com) → 用微软账号登录（完全免费）
+2. 点 **Add project**（添加网站）→ 填你的域名 → 项目名随意
+3. 安装方式选 **Manual install（手动安装）**，拿到一段 `<script>` 跟踪代码（内含你的项目 ID）
+4. 打开你仓库里的 `src/components/layout/BaseLayout.astro`，把跟踪代码粘贴到 `</head>` 结束标签之前（文件里搜 `</head>`，就在 `Optional analytics` 注释区块下方）→ commit + push 触发重新部署
+5. 回 Clarity 后台等几分钟，项目状态变为 Receiving data（正在接收数据）就接好了
+
+> 两个说明：① Clarity 脚本是异步加载的轻量脚本，对 Lighthouse 分数影响可忽略；模板默认不预装它（模板的开箱契约是零第三方脚本），装不装由你决定。② 如果你照[下方常见问题](#q-我想加-content-security-policycsp)配过 CSP，`script-src` 需放行 `www.clarity.ms`，`connect-src` 放行 `c.clarity.ms`。
+
+### 新手怎么看（每天 5 分钟）
+
+- **热力图（Heatmaps）**：给任意页面开一张热力图，红色 = 点击最密集。看两件事：① 用户是不是点在你的核心内容上（兑换码表格、复制按钮）；② **广告位有没有被点**——广告位常年冷清就是位置/样式有问题，该挪位置就挪。
+- **录屏（Recordings）**：挑 5-10 段真实用户的操作录屏，看用户**卡在哪**——在哪一屏滚走了、是不是没找到想找的内容。反复出现的卡点，就是你下一个要优化的页面。
 
 ---
 
@@ -285,6 +326,14 @@ A: `SITE_URL` 环境变量没更新或没重新部署。改完后必须触发一
 ### Q: 日文页面显示英文 fallback
 
 A: 这是设计行为，不是 bug。参见 [PRD §9.3](./PRD.md#93-文章-fallback-机制)：单篇文章缺失时自动回退英文，保证 URL 不 404；列表页不回退（该语言没内容就显示空状态）。
+
+### Q: 我想加 Content-Security-Policy（CSP）
+
+A: 模板默认不带 CSP（`public/_headers` 里已有 COOP/nosniff/XFO/Referrer-Policy 四条基础头）。如果自建 CSP，注意模板有**内联脚本**（防 FOUC 主题初始化、主题切换、搜索、AdSense/giscus 按需加载），`script-src` 需要 `'unsafe-inline'`（或逐脚本 hash）；开启广告还要放行 `pagead2.googlesyndication.com` 系域名，开启评论放行 `giscus.app`，开启 GA 放行 `googletagmanager.com`。一个可用起点（在 `public/_headers` 按路径追加，改完重新部署并逐项验证主题切换/搜索/评论/广告）：
+
+```
+Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' pagead2.googlesyndication.com static.cloudflareinsights.com www.googletagmanager.com giscus.app; style-src 'self' 'unsafe-inline'; img-src 'self' data: i.ytimg.com pagead2.googlesyndication.com; frame-src youtube-nocookie.com giscus.app; connect-src 'self' cloudflareinsights.com region1.google-analytics.com;
+```
 
 ---
 

@@ -12,12 +12,15 @@ import ListPage from '~/components/article/ListPage.astro';
 import ArticlePage from '~/components/article/ArticlePage.astro';
 import { CONTENT_TYPES } from '~/config/navigation';
 import { isLocale, defaultLocale, locales, type Locale } from '~/i18n/routing';
-import { getEntryWithFallback, parseEntryId, type ResolvedEntry } from '~/lib/content';
+import { getEntryWithFallback, localesForEntry, parseEntryId, type ResolvedEntry } from '~/lib/content';
 import { detailPath, languageAlternates, listPath } from '~/lib/url';
 
 export async function getStaticPaths() {
   const { getCollection } = await import('astro:content');
   const all = await getCollection('wiki');
+  const isDev = import.meta.env.DEV;
+  // Drafts are dev-only — never generate production pages for them.
+  const published = all.filter((e) => isDev || !e.data.draft);
 
   const paths: Array<{
     params: { locale: string; slug: string };
@@ -35,7 +38,7 @@ export async function getStaticPaths() {
     }
 
     // Article paths from this locale's own MDX.
-    for (const entry of all) {
+    for (const entry of published) {
       const parsed = parseEntryId(entry.id);
       if (!parsed || parsed.locale !== locale) continue;
       paths.push({ params: { locale, slug: `${parsed.category}/${parsed.slug}` } });
@@ -43,7 +46,7 @@ export async function getStaticPaths() {
 
     // Also generate paths for English articles so fallback works at request
     // time (e.g. /ja/bosses/stormcaller where ja version doesn't exist).
-    for (const entry of all) {
+    for (const entry of published) {
       const parsed = parseEntryId(entry.id);
       if (!parsed || parsed.locale !== defaultLocale) continue;
       const slugStr = `${parsed.category}/${parsed.slug}`;
@@ -93,14 +96,24 @@ if (view === 'not-found') {
   return new Response('Not Found', { status: 404 });
 }
 
-// Build hreflang alternates for this page (same URL shape, varying locale).
+// Build hreflang alternates (same URL shape, varying locale). hreflang must
+// match the page's actual CONTENT language: on fallback pages (English
+// content served at a /ja/ URL) declaring hreflang="ja" for this URL is
+// invalid, so article alternates cover only locales with a real translated
+// MDX version (localesForEntry). A ja-only article must not emit
+// hreflang="en" pointing at a 404 either.
+const entryLocales = view === 'article' ? await localesForEntry(category, articleSlug) : [];
 const alternates =
   view === 'list'
     ? languageAlternates((loc) => listPath(category, loc), locales)
-    : languageAlternates((loc) => detailPath(category, articleSlug, loc), locales);
+    : languageAlternates((loc) => detailPath(category, articleSlug, loc), entryLocales);
+// The language switcher is UI, not a language claim — fallback URLs are real
+// reachable pages, so it offers the union (current locale + translated ones).
+const switcherLocales =
+  view === 'list' ? locales : Array.from(new Set([locale, ...entryLocales]));
 ---
 
 {view === 'list' && <ListPage locale={locale} category={category} alternates={alternates} />}
 {view === 'article' && resolved && (
-  <ArticlePage locale={locale} resolved={resolved} alternates={alternates} />
+  <ArticlePage locale={locale} resolved={resolved} alternates={alternates} availableLocales={switcherLocales} />
 )}

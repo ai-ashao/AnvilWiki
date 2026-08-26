@@ -5,7 +5,12 @@
  * Links to the live demo at /.
  */
 import { Icon } from 'astro-icon/components';
-import { landing } from '~/config/landing';
+import { type LandingContent } from '~/config/landing';
+
+interface Props {
+  t: LandingContent;
+}
+const { t } = Astro.props;
 ---
 
 <section class="section border-t border-border bg-muted/30">
@@ -13,11 +18,11 @@ import { landing } from '~/config/landing';
     {/* Left: text */}
     <div>
       <h2 class="text-3xl font-extrabold tracking-tight text-foreground">
-        {landing.showcase.title}
+        {t.showcase.title}
       </h2>
-      <p class="mt-2 text-muted-foreground">{landing.showcase.subtitle}</p>
+      <p class="mt-2 text-muted-foreground">{t.showcase.subtitle}</p>
       <ul class="mt-5 space-y-3">
-        {landing.showcase.points.map((point) => (
+        {t.showcase.points.map((point) => (
           <li class="flex items-start gap-2 text-sm text-foreground/80">
             <Icon name="lucide:check-circle-2" class="mt-0.5 h-4 w-4 flex-shrink-0 text-green-600 dark:text-green-400" />
             <span>{point}</span>
@@ -25,33 +30,47 @@ import { landing } from '~/config/landing';
         ))}
       </ul>
       <a
-        href={landing.showcase.cta.href}
+        href={t.showcase.cta.href}
         class="btn-primary mt-6 inline-flex items-center gap-1.5"
       >
-        {landing.showcase.cta.label}
+        {t.showcase.cta.label}
       </a>
     </div>
 
-    {/* Right: stylized preview card */}
-    <div class="overflow-hidden rounded-xl border border-border bg-card shadow-lg">
-      <div class="flex items-center gap-2 border-b border-border bg-muted px-4 py-3">
-        <span class="h-3 w-3 rounded-full bg-red-400"></span>
-        <span class="h-3 w-3 rounded-full bg-yellow-400"></span>
-        <span class="h-3 w-3 rounded-full bg-green-400"></span>
-        <span class="ml-3 truncate rounded bg-background px-3 py-0.5 text-xs text-muted-foreground">
-          anvilwiki.pages.dev
-        </span>
-      </div>
-      <div class="space-y-3 p-6">
-        <div class="h-6 w-2/3 rounded bg-muted"></div>
-        <div class="h-3 w-full rounded bg-muted/60"></div>
-        <div class="h-3 w-4/5 rounded bg-muted/60"></div>
-        <div class="grid grid-cols-3 gap-3 pt-2">
-          <div class="h-16 rounded-lg border border-border bg-nav/5"></div>
-          <div class="h-16 rounded-lg border border-border bg-muted/40"></div>
-          <div class="h-16 rounded-lg border border-border bg-muted/40"></div>
+    {/* Right: real screenshots — article page (desktop) + homepage (mobile) */}
+    <div class="space-y-4">
+      <div class="overflow-hidden rounded-xl border border-border bg-card shadow-lg">
+        <div class="flex items-center gap-2 border-b border-border bg-muted px-4 py-2.5">
+          <span class="h-2.5 w-2.5 rounded-full bg-red-400"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-yellow-400"></span>
+          <span class="h-2.5 w-2.5 rounded-full bg-green-400"></span>
+          <span class="ml-3 truncate rounded bg-background px-3 py-0.5 text-xs text-muted-foreground">
+            {t.showcase.browserUrl}
+          </span>
         </div>
-        <div class="h-20 rounded-lg border border-border bg-muted/30"></div>
+        <img
+          src="/images/showcase/demo-article.webp"
+          alt={t.showcase.articleAlt}
+          width="1280"
+          height="800"
+          loading="lazy"
+          decoding="async"
+          class="w-full"
+        />
+      </div>
+      <div class="flex items-end justify-center gap-4">
+        <img
+          src="/images/showcase/demo-mobile.webp"
+          alt={t.showcase.mobileAlt}
+          width="195"
+          height="360"
+          loading="lazy"
+          decoding="async"
+          class="w-32 rounded-lg border border-border shadow-md sm:w-40"
+        />
+        <p class="max-w-40 text-xs text-muted-foreground">
+          {t.showcase.mobileCaption}
+        </p>
       </div>
     </div>
   </div>

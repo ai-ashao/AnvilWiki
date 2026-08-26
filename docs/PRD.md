@@ -35,7 +35,7 @@
 
 ### 1.1 问题陈述
 
-游戏 wiki 站点（game wiki site）是一种以搜索引擎为主要流量来源的内容站：围绕某款游戏（尤其是 Roblox、Steam 新游）的攻略、兑换码、tier list 等关键词，批量生产结构化文章，通过 SEO 获取自然流量，再通过广告（广告网络 / AdSense）变现。
+游戏 wiki 站点（game wiki site）是一种以搜索引擎为主要流量来源的内容站：围绕某款游戏（尤其是 Roblox、Steam 新游）的攻略、兑换码、tier list 等关键词，批量生产结构化文章，通过 SEO 获取自然流量，再通过广告（如 Google AdSense）变现。
 
 这类站点的技术特征非常明确：
 
@@ -79,7 +79,7 @@ AnvilWiki 围绕游戏 wiki 站点的技术特征，确立以下设计目标：
 | G5 | **SEO 工程化** | sitemap / JSON-LD / hreflang / robots / 内链全部由代码自动生成，填内容即生效。 |
 | G6 | **多语言开箱即用** | as-needed 前缀策略（英文无前缀），文章单篇 fallback 英文不 404，列表不 fallback。 |
 | G7 | **模板套用工程化** | 结构化套用流程（见 docs/apply-template.md），改配置不改框架代码。 |
-| G8 | **广告就绪** | 内置 广告 iframe 隔离广告系统，环境变量驱动，新手填 key 即生效。 |
+| G8 | **广告就绪** | 内置 Google AdSense 广告系统，环境变量驱动，新手填 key 即生效。 |
 | G9 | **开源** | MIT 协议，中英双语 README，完整文档，欢迎社区贡献。 |
 
 ### 2.2 非目标（明确不做）
@@ -90,7 +90,7 @@ AnvilWiki 围绕游戏 wiki 站点的技术特征，确立以下设计目标：
 | N2 | **不做可视化后台/CMS** | 内容靠 MDX 文件 + Git，文件系统即数据库。需要 CMS 的用户自行接 Astro DB / Decap CMS。 |
 | N3 | **不做自动化内容生成** | 内容生成是独立工具链，AnvilWiki 只负责消费标准 MDX 文章。提供 frontmatter 格式说明，不绑定特定生成工具。 |
 | N4 | **不做 React/Vue/Svelte 全栈** | 交互组件用纯 Astro 原生 + 极少 vanilla JS。不为单一组件引入整个 framework runtime。 |
-| N5 | **不绑定特定广告平台** | 默认接 广告网络（如 AdSense/其他广告网络 等），但广告组件抽象为通用 iframe 方案，可替换为任何广告网络。 |
+| N5 | **广告默认接 Google AdSense** | 广告系统基于 Google AdSense（`<ins class="adsbygoogle">`），3 个广告位（Sticky / Sidebar / InContent）各一个 slot，环境变量驱动。不内置其他广告网络的隔离方案。 |
 | N6 | **不做内容运营教学** | AnvilWiki 是模板，不是教程。文档聚焦「怎么用模板」，不教选词/SEO 策略/外链建设。 |
 
 ### 2.3 目标用户画像
@@ -119,7 +119,7 @@ AnvilWiki 面向「游戏 wiki 站点」这一特定场景，在框架、部署�
 | 多语言 | Astro i18n as-needed | `prefixDefaultLocale: false` 实现默认语言（英文）无前缀。 |
 | 首页模块 | JSON 驱动（v0.2：6 区块 / 4 explore 模块） | 文案与组件解耦，换游戏只改 JSON，组件零改动。 |
 | SEO 工程化 | 完整（sitemap/JSON-LD/hreflang/robots） | sitemap / JSON-LD（Organization/WebSite/Article/BreadcrumbList/ItemList/FAQPage）/ hreflang / robots 全部代码自动生成。 |
-| 广告系统 | 广告 iframe 隔离 | 每个广告位独立 html，避免 atOptions 串号；环境变量驱动，新手填 key 即生效。 |
+| 广告系统 | Google AdSense | 3 个广告位（Sticky / Sidebar / InContent）各一个 AdSense slot，环境变量驱动，新手填 key 即生效。 |
 | 套用模板流程 | 配置参考手册 | 换游戏只改配置层 + 替换内容层，代码层不动。 |
 | 游戏站适配 | 专为游戏站设计 | 内置游戏站特定的 SEO（ItemList/Breadcrumb）+ 兑换码/tier list 专用 displayType。 |
 
@@ -182,6 +182,19 @@ Cloudflare 同时提供 Pages（静态托管）和 Workers（边缘计算）两�
 
 **决策**：默认 Pages（新手友好、静态站原生适配），文档补充 Workers 部署方式（进阶用户、需要 SSR/API 时）。
 
+#### ADR-004：内容管道 = 确定性生成 + PR 门控，LLM 永不进 CI（v2.0）
+
+v2.0 的架构第一性问题是「谁产生 commit」。决策：CI 里只跑**确定性生成器**（如 bulk-new-posts 脚手架），AI 写作留在本地会话（.agent/skills + anvil-ops submit）；远程管道（auto-content.yml）把八道质量门禁**前置**为开 draft PR 的前提——门禁红了就没有 PR。workflow_dispatch 仅 collaborator 可触发（天然鉴权），`secrets` 零引用、幂等（固定分支名）、永不直推 main。背景：2026 年起 GITHUB_TOKEN 创建的 PR 不自动跑 CI（待批准状态），门禁前置反而比「先开 PR 再等 CI」更严格。
+
+**决策**：管道 = 确定性脚本 + 门禁前置 + draft PR + 人工 merge；tests/workflows.test.ts 把安全契约钉进 CI。
+
+#### ADR-005：多站管理是工具层能力，模板保持一仓一站（v2.0）
+
+多站（N 个游戏 wiki）的统一运营不改动模板仓库形态——每个站仍是独立的 git 仓库 + 独立的 Cloudflare Pages 项目（三层分离、merge 上游的能力都不受影响）。统一发生在 `anvilwiki-ops`（1.0.0）：`~/.config/anvil-ops/sites.toml` 注册表只存别名/路径/siteUrl 覆盖，**凭据永不入注册表**（各站 `.env` 各自保管）；默认行为（cwd 自动发现）与 0.x 完全一致，注册表只是跨站批操作（`--all`）的索引层。`submit` 刻意不支持 `--all`（批量发布不一键化）。
+
+**决策**：模板 = 一仓一站不动；多站 = anvil-ops 注册表 + `--site`/`--all`；breaking 变化（MCP 工具加 `site` 参数）由 ops 包 1.0.0 承载。
+
+
 ---
 
 ## 第 4 章 整体架构
@@ -198,7 +211,7 @@ AnvilWiki 采用**分层设计**的架构设计：
 │  ├── i18n 系统（as-needed 前缀 + fallback）        │
 │  ├── SEO 组件（sitemap、JSON-LD、hreflang、robots）│
 │  ├── 首页模块渲染器（4 种 displayType）             │
-│  ├── 广告组件（iframe 隔离）                        │
+│  ├── 广告组件（Google AdSense）                     │
 │  └── 主题色 CSS 变量体系                            │
 ├─────────────────────────────────────────────────┤
 │  配置层（每个游戏改一次）                            │
@@ -262,143 +275,91 @@ Cloudflare Pages（连 GitHub 自动部署）
 
 ## 第 5 章 目录结构
 
+> 本章树为 v1.16.0 实际结构（早期版本存档见 git history）。日常开发的活地图以 `AGENTS.md` 为准。
+
 ```
 anvilwiki/
-├── astro.config.mjs              # ⭐ Astro 配置（output/i18n/integrations/site URL）
-├── content.config.ts             # ⭐ Content Collections schema 定义（Zod）
+├── astro.config.ts               # ⭐ Astro 配置（output/i18n/sitemap/lastmod+noindex 扫描/site URL）
+├── src/content.config.ts         # ⭐ Content Collections schema（Zod，wiki + handbook 双集合）
 ├── tailwind.config.mjs           # Tailwind 配置（扫描路径 + 主题色映射）
-├── tsconfig.json                 # TypeScript 严格模式
-├── package.json
-├── pnpm-lock.yaml
+├── tsconfig.json                 # TypeScript 严格模式（tools/ 除外）
+├── package.json                  # private: true —— 模板与 fork 永不误发 npm
+├── pnpm-workspace.yaml           # allowBuilds（pnpm 11 写法）：esbuild + sharp
 ├── wrangler.toml                 # 可选；本 Fork 默认不提交，避免覆盖 dashboard 环境变量
 ├── .env.example                  # 环境变量模板（广告 key 等）
-├── .gitignore
-├── .nvmrc                        # Node 22 LTS
-├── README.md                     # ⭐ 项目门面（中英双语，新手指南）
-├── LICENSE                       # MIT
-├── CONTRIBUTING.md               # 贡献指南
-├── CHANGELOG.md                  # 版本变更
+├── .nvmrc                        # Node 22 LTS（pnpm 11 要求 ≥22.13）
+├── README.md                     # ⭐ 项目门面（中英双语）
+├── LICENSE / CONTRIBUTING.md / CHANGELOG.md
 ├── docs/
 │   ├── PRD.md                    # ⭐ 本文档
-│   ├── deployment.md             # Cloudflare Pages 部署详细指南
-│   ├── apply-template.md          # 配置参考手册（按文件组织）
-│   ├── content-format.md         # MDX 文章格式规范
-│   ├── seo.md                    # SEO 工程化说明
-│   └── migration-from-nextjs.md  # 从传统 Next.js 模板迁移指南
+│   ├── handbook/<locale>/<slug>.md  # ⭐ 站内文档中心源码（learn 11 章 + dev 7 章，en/zh；fork 保留）
+│   ├── deployment.md / apply-template.md / content-format.md
+│   ├── game-selection.md / staying-up-to-date.md / development.md / seo.md
+│   └── superpowers/              # specs + plans（架构决策存档）
 ├── public/
-│   ├── images/
-│   │   └── hero.webp             # Hero 图（WebP，og:image 绝对路径引用）
-│   ├── favicon.ico
-│   ├── favicon-16x16.png
-│   ├── favicon-32x32.png
-│   ├── apple-touch-icon.png
-│   ├── android-chrome-192x192.png
-│   ├── android-chrome-512x512.png
-│   ├── manifest.json             # PWA manifest
-│   ├── ads.txt                   # 广告授权
-│   ├── ads/                      # ⭐ 广告 iframe 隔离广告模板
-│   │   ├── banner-320x50.html
-│   │   ├── banner-300x250.html
-│   │   ├── banner-728x90.html
-│   │   ├── banner-468x60.html
-│   │   ├── sidebar-160x600.html
-│   │   └── sidebar-160x300.html
+│   ├── images/                   # hero.webp + showcase/（截图，fork 时 CLI/工作流清理）
+│   ├── favicon.ico / favicon-*.png / apple-touch-icon.png / android-chrome-*.png
+│   ├── manifest.json / ads.txt / _headers       # _headers：安全头 + 缓存策略
 │   └── robots.txt                # （构建时由 endpoint 生成，此文件可不存在）
 ├── src/
-│   ├── content/                  # ⭐ 内容层：MDX 文章
-│   │   ├── en/
-│   │   │   ├── bosses/
-│   │   │   │   └── emberfang.mdx     # → /bosses/emberfang
-│   │   │   └── guides/
-│   │   │       └── beginner.mdx  # → /guides/beginner
-│   │   └── ja/                   # 日文版（可选）
-│   │       └── bosses/
-│   │           └── emberfang.mdx     # → /ja/bosses/emberfang
-│   ├── pages/                    # ⭐ 代码层：路由
-│   │   ├── index.astro           # 根路径 → redirect 到默认语言首页
-│   │   ├── [locale]/             # 语言前缀路由（英文无前缀由 prefixDefaultLocale:false 实现）
-│   │   │   ├── index.astro       # 首页（JSON 驱动，v0.2：6 区块 / 4 explore 模块）
-│   │   │   ├── [...slug].astro   # ⭐ 统一路由：slug.length=1→列表页，>1→详情页
-│   │   │   ├── faq.astro         # 独立 FAQ 页（v0.2 从首页移出）
-│   │   │   ├── privacy-policy.astro
-│   │   │   ├── terms-of-service.astro
-│   │   │   ├── copyright.astro
-│   │   │   ├── about.astro
-│   │   │   └── 404.astro
-│   │   ├── robots.txt.ts         # 动态 robots（sitemap 由 @astrojs/sitemap 集成自动生成）
-│   │   ├── robots.txt.ts         # 动态 robots
-│   │   └── ads/                  # 广告 iframe 占位（如需 SSR 注入 key，否则用 public/ads/*.html）
-│   ├── components/               # ⭐ 代码层：纯 Astro 组件
-│   │   ├── layout/
-│   │   │   ├── BaseLayout.astro  # <html>/<head>/global meta/Organization JSON-LD
-│   │   │   └── LocaleLayout.astro # [locale] 公共外壳（Header + Footer + 主内容）
-│   │   ├── header/
-│   │   │   ├── SiteHeader.astro  # 导航栏 + Logo + 主题切换 + 语言切换
-│   │   │   ├── LanguageSwitcher.astro
-│   │   │   └── ThemeToggle.astro # 5 行 JS 的暗色切换
-│   │   ├── footer/
-│   │   │   └── SiteFooter.astro  # 社交链接 + 法律链接
-│   │   ├── sidebar/
-│   │   │   └── WikiSidebar.astro # ⭐ 动态导航（getDynamicNavigation 等价物）
-│   │   ├── home/                 # 首页组件（v0.2：6 区块）
-│   │   │   ├── HomePage.astro        # ⭐ 首页主体（逐 section 渲染 home JSON）
-│   │   │   ├── VideoSection.astro    # YouTube 嵌入（仅 hero.videoId 非空时）
-│   │   │   ├── QuickStart.astro      # ⭐ v0.2 新增：4 个大图标快速入口卡片
-│   │   │   ├── TrendingNow.astro     # 横向滚动热门（v0.2 起首页不再调用，保留备用）
-│   │   │   ├── ExploreModules.astro  # ⭐ 4 模块容器，整卡可点击，按 displayType 分发
-│   │   │   ├── FaqSection.astro      # 原生 <details> 手风琴（v0.2 起由 /faq 独立页调用）
-│   │   │   └── modules/
-│   │   │       ├── CodeCards.astro   # displayType: badge-list
-│   │   │       ├── StepByStep.astro  # displayType: steps
-│   │   │       ├── TierGrid.astro    # displayType: ranked-grid
-│   │   │       └── CardList.astro    # displayType: labeled-cards
-│   │   ├── article/
-│   │   │   ├── ArticlePage.astro  # 详情页主体（H1 + MDX body + 面包屑 + 相关文章）
-│   │   │   └── ListPage.astro     # 列表页主体（分类标题 + 文章卡片列表）
-│   │   ├── seo/
-│   │   │   └── JsonLd.astro       # ⭐ 通用 JSON-LD 注入组件
-│   │   └── ads/
-│   │       ├── AdBanner.astro     # iframe 广告组件（key 为空 return null）
-│   │       ├── StickyBanner.astro # Sticky 320×50 + 关闭按钮
-│   │       └── SidebarAd.astro    # 桌面端 fixed 侧边栏
-│   ├── config/                   # ⭐ 配置层
-│   │   ├── site.ts               # 站点信息（name/domain/social/gameMeta）
-│   │   └── navigation.ts         # ⭐ NAVIGATION_CONFIG 单一真相源
+│   ├── content/
+│   │   └── wiki/<locale>/<category>/*.mdx  # ⭐ 内容层（须在 wiki/ 子目录下，避免 legacy 自动集合）
+│   ├── pages/                    # ⭐ 代码层：路由（英文无前缀，其他语言 /<locale>/ 前缀）
+│   │   ├── index.astro           # 英文首页（inline 渲染，不 redirect —— redirect 会毁 SEO）
+│   │   ├── [...slug].astro       # ⭐ 英文统一路由：slug.length=1→列表页，>1→详情页
+│   │   ├── [locale]/
+│   │   │   ├── index.astro       # 非默认语言首页
+│   │   │   ├── [...slug].astro   # ⭐ 统一路由（含英文文章的 fallback 路径物化）
+│   │   │   ├── [legal].astro     # 法律页统一路由（一个文件渲染 5 个 legal 页）
+│   │   │   ├── faq.astro / recent.astro
+│   │   │   └── tags/index.astro + tags/[tag].astro
+│   │   ├── tags/index.astro + tags/[tag].astro
+│   │   ├── recent.astro / faq.astro / 404.astro
+│   │   ├── about / privacy-policy / terms-of-service / copyright / contact .astro
+│   │   ├── robots.txt.ts / rss.xml.ts / llms.txt.ts   # 动态 endpoints
+│   │   └── landing.astro + landing/comparison.astro + landing/docs/*   # 项目官网路由（fork 清理）
+│   │   └── zh/landing.astro + zh/landing/comparison.astro + zh/landing/docs/*  # 中文官网路由（fork 清理）
+│   ├── components/               # ⭐ 代码层：纯 Astro 组件（零框架运行时）
+│   │   ├── layout/               # BaseLayout / LocaleLayout / LegalPage
+│   │   ├── header/               # SiteHeader / SearchButton(Pagefind) / LanguageSwitcher / ThemeToggle
+│   │   ├── footer/ sidebar/      # SiteFooter / WikiSidebar
+│   │   ├── home/                 # 首页 6 区块 + explore 模块（displayType 分发）
+│   │   ├── article/              # ArticlePage / ListPage / CodesTable / TagListPage / Comments 等
+│   │   ├── mdx/                  # ⭐ MDX 组件词汇表：CodeBlock/StatBar/Callout/Accordion/Video/AffiliateLink
+│   │   ├── seo/ ads/ video/      # JsonLd / AdSenseSlot×3 位 / LazyYouTube 门面
+│   │   └── landing/              # 项目官网组件（fork 清理）
+│   ├── config/                   # ⭐ 配置层（fork 改这里）
+│   │   ├── site.ts navigation.ts authors.ts project.ts
+│   │   └── landing.ts            # 项目官网文案 + COMMUNITY_SITES（fork 清理）
 │   ├── i18n/                     # ⭐ 代码层 + 配置层
-│   │   ├── routing.ts            # ⭐ 语言列表唯一源（locales/defaultLocale）
+│   │   ├── routing.ts            # ⭐ 语言列表唯一源（locales/defaultLocale/OG_LOCALE_MAP）
 │   │   ├── ui.ts                 # UI 文案加载器（deepMerge fallback）
-│   │   └── content.ts            # ⭐ 文章加载封装（getEntryWithFallback 等）
-│   ├── locales/                  # ⭐ 内容层：UI 文案
-│   │   ├── en.json               # home.* / nav / footer / 分类 overview*
-│   │   └── ja.json               # （deepMerge en，缺 key 自动回退）
-│   ├── styles/
-│   │   └── globals.css           # ⭐ --brand / --brand-light（4 行改主题色）
-│   └── lib/
-│       ├── content.ts            # Content Collections 查询封装
-│       ├── navigation.ts         # getDynamicNavigation()（扫描 content 生成分组）
-│       ├── seo.ts                # JSON-LD 构造函数（Organization/Article/Breadcrumb/ItemList）
-│       ├── url.ts                # URL 构造（locale 前缀、slug 转换、绝对路径）
-│       └── ads.ts                # 广告 key 读取 + 条件渲染辅助
-├── scripts/
-│   ├── new-post.ts               # 脚手架：生成新文章 MDX 模板
-│   ├── check-sitemap.ts          # 检查 sitemap 所有 URL 返回 200
-
+│   │   └── content.ts            # ⭐ 文章加载封装（getEntryWithFallback：详情回退/列表不回退）
+│   ├── locales/                  # ⭐ 内容层：UI 文案 JSON（en/ja，deepMerge en 缺 key 回退）
+│   ├── styles/globals.css        # ⭐ --brand 4 变量（:root 4 行 + .dark 4 行）
+│   ├── assets/                   # 封面图等（走 astro:assets <Image> 管线，WebP+srcset）
+│   └── lib/                      # content.ts / content-utils.ts / navigation.ts / seo.ts / url.ts / handbook.ts
+├── scripts/                      # 12 个运维脚本（check-* ×5 + refresh-audit + new-locale/new-post + apply-template + template-audit + bulk-new-posts + gen-covers）
+├── tools/anvil-ops/              # ⭐ 独立 npm 包 anvilwiki-ops（CLI + MCP，自有 workspace）
+├── .agent/skills/                # ⭐ AI 内容技能（anvil-new-article / anvil-batch-articles / anvil-update-codes / anvil-refresh）
 └── .github/
     ├── workflows/
-    │   └── ci.yml                # PR 检查（lint + typecheck + build）
-    ├── ISSUE_TEMPLATE/
-    │   ├── bug-report.md
-    │   └── feature-request.md
+    │   ├── ci.yml                # 8 道门禁（lint/typecheck/test/check-config/build/check-content/check-links/check-i18n，门禁定义在共享 composite action .github/actions/gates）+ ops-toolkit job（tools/anvil-ops 的 typecheck/test/build）
+    │   ├── auto-content.yml      # ⭐ v2.0 内容管道：确定性生成 → 八道门禁 → draft PR（workflow_dispatch）
+    │   ├── content-pipeline.yml  # 每周新鲜度巡检 → issue
+    │   ├── release-ops.yml       # anvilwiki-ops npm 发布（OIDC Trusted Publishing，零令牌）
+    │   └── setup.yml             # fork 一键初始化（workflow_dispatch）
+    ├── ISSUE_TEMPLATE/ bug-report.md + feature-request.md
     └── PULL_REQUEST_TEMPLATE.md
 ```
 
 ### 5.1 目录设计要点
 
-1. **`src/content/` 而非根目录 `content/`**：Astro 5 的 Content Layer API 用 `glob({ base: './src/content' })` 显式指定，内容统一收敛在 `src/` 下，不污染项目根目录。
-2. **`content.config.ts` 在根目录**：Astro 5 的约定（取代老的 `src/content/config.ts`）。
+1. **内容在 `src/content/wiki/<locale>/`**：Astro 5 Content Layer API 用 `glob({ base: './src/content/wiki' })` 显式指定；直接放 `src/content/<locale>/` 会触发 legacy 自动集合（deprecation 警告），所以必须有 `wiki/` 这一层。
+2. **`src/content.config.ts`**：Astro 5 约定位置（根目录无副本）。
 3. **配置文件集中在 `src/config/`**：新手套用模板时只关注这一个目录 + `globals.css` + `locales/`。
-4. **`scripts/` 提供脚手架**：降低新手写 MDX 的门槛。
-5. **`docs/` 完整文档**：每个关注点一个文件，README 只做导航。
+4. **`scripts/` 提供脚手架与门禁**：降低写 MDX 门槛 + CI 可跑的检查脚本。
+5. **`docs/` 完整文档**：每个关注点一个文件，README 只做导航；handbook markdown 是站内文档中心的单一源。
 
 ---
 
@@ -406,36 +367,41 @@ anvilwiki/
 
 ### 6.1 MDX 文章 frontmatter schema
 
-定义在 `content.config.ts`：
+定义在 `src/content.config.ts`（完整字段表与写作规范见 `docs/content-format.md`）：
 
 ```typescript
-// content.config.ts
-import { defineCollection } from 'astro:content';
-import { glob } from 'astro/loaders';
-import { z } from 'astro/zod';
-
+// src/content.config.ts（节选，注释见源文件）
 const wiki = defineCollection({
-  loader: glob({ pattern: '**/*.mdx', base: './src/content' }),
-  schema: z.object({
-    // 必填
-    title: z.string().max(70),              // SEO title，建议 50-60 字符
-    description: z.string().min(50).max(160), // meta description，155 字符最佳
-    category: z.string(),                   // 内容类型 slug，如 'bosses'/'guides'（须在 navigation.ts 定义）
-    date: z.coerce.date(),                  // 发布日期
-    // 可选
-    lastModified: z.coerce.date().optional(), // 最后修改日期（影响 Article JSON-LD dateModified）
-    image: z.string().optional(),           // 封面图（相对 /public 或绝对 URL），缺省用 hero.webp
-    tags: z.array(z.string()).optional(),   // 标签（用于相关文章推荐）
-    noindex: z.boolean().default(false),    // 是否禁止索引
-  }),
+  loader: glob({ pattern: '**/*.mdx', base: './src/content/wiki' }),
+  schema: ({ image }) =>
+    z.object({
+      // 必填
+      title: z.string().max(80),                 // SEO title，建议 50-60 字符
+      description: z.string().min(40).max(165),  // meta description，155 字符最佳
+      category: z.string(),                      // 内容类型 slug，如 'bosses'/'guides'（须在 navigation.ts 定义）
+      date: z.coerce.date(),                     // 发布日期
+      // 可选
+      lastModified: z.coerce.date().optional(),  // 最后修改日期（影响 Article JSON-LD dateModified）
+      image: image().optional(),                 // 封面图（相对 MDX 文件路径，走 astro:assets 管线），缺省用 hero.webp
+      tags: z.array(z.string()).default([]),     // 标签（相关文章推荐 + 标签聚合页）
+      noindex: z.boolean().default(false),       // 是否禁止索引（同时从 sitemap/rss/llms.txt 剔除）
+      draft: z.boolean().default(false),         // dev 可见、生产构建排除
+      gameVersion: z.string().max(20).optional(),// 版本徽章（快节奏游戏的保鲜/E-E-A-T 信号）
+      summary: z.string().max(200).optional(),   // Quick Answer 卡（AI Overviews / 精选摘要候选）
+      author: z.string().optional(),             // 作者名（回退 site.defaultAuthor）
+      boss: z.object({ /* hp/weakness/resistant/location/recommendedLevel */ }).optional(), // Boss 数据卡
+      videos: z.array(z.string()).optional(),    // YouTube ID 列表（点击才加载的懒嵌入 + VideoObject）
+      gallery: z.array(z.object({ image: image(), caption: z.string().max(200).optional(), alt: z.string().max(200).optional() })).default([]), // 画廊 + 灯箱
+      codes: z.array(z.object({ code: z.string().min(1), reward: z.string().optional(), status: z.enum(['active','expired']).default('active'), expiryDate: z.string().max(40).optional(), source: z.string().optional() })).optional(), // 兑换码表
+    }),
 });
 
-export const collections = { wiki };
+export const collections = { wiki, handbook };
 ```
 
 **Content Collections 的优势**：
 - YAML frontmatter + Zod schema，**构建时校验**，字段缺失/类型错误立即 fail build。
-- 类型安全的 entry（`{ id, data, body, render() }`），组件 props 自动推断，无需手动 cast。
+- 类型安全的 entry（`{ id, data, body }`；Astro 5 Content Layer API 中渲染用独立 `render(entry)` 函数，`entry.render()` 方法已不存在——见 AGENTS.md 踩坑清单）。
 - frontmatter 与正文分离，MDX 作者只关心内容，字段规范由 schema 强约束。
 
 ### 6.2 文章示例
@@ -977,124 +943,116 @@ export function getUi(locale: Locale) {
 
 ### 10.1 设计原则
 
-**核心**：iframe 隔离——每个广告位一个独立 html 文件，避免多个 `window.atOptions` 串号。
+**核心**：Google AdSense 集成——3 个广告位各一个 AdSense slot，环境变量驱动，key 为空时组件 `return null` 不渲染（保 Lighthouse 4×100 开箱契约）。
+
+- AdSense loader 脚本由 `BaseLayout.astro` 在 `<head>` 注入，仅当 `PUBLIC_ADSENSE_CLIENT` 有值时加载。
+- 每个广告位是一个 `<AdSenseSlot position="...">` 组件，根据 position 读取对应的 slot ID 环境变量。
+- 尺寸由 AdSense 自动决定（responsive），不需要为每个位置指定固定尺寸。
 
 ### 10.2 广告位清单
 
-| 广告类型 | 尺寸 | 必配 | 说明 |
+| 位置 | 组件 | 挂载点 | Slot 环境变量 |
 |---|---|---|---|
-| Banner Sticky | 320×50 | ✅ | 粘顶横幅，曝光时长最高 |
-| Sidebar Sticky | 160×300 | ✅ | 桌面端侧边栏半高 |
-| Sidebar Sticky | 160×600 | ✅ | 桌面端侧边栏竖幅 |
-| Banner | 728×90 | ✅ | 页内大横幅 |
-| Banner | 300×250 | ✅ | 页内中等矩形 |
-| Native Banner | — | ✅ | 原生横幅 |
-| Banner | 468×60 | 可选 | 经典横幅 |
+| Sticky（粘顶横幅） | `StickyBanner.astro` | `LocaleLayout`（全局） | `PUBLIC_ADSENSE_SLOT_STICKY` |
+| Sidebar（桌面端侧边栏） | `SidebarAd.astro` | `WikiSidebar`（桌面端） | `PUBLIC_ADSENSE_SLOT_SIDEBAR` |
+| InContent（文章内） | `InContentAd.astro` | `ArticlePage`（相关文章前） | `PUBLIC_ADSENSE_SLOT_INCONTENT` |
 
-> 具体每个广告位的 CPM 取决于流量地区、广告尺寸和广告网络填充率，因站而异。在 广告网络后台用 Group by 功能按广告位/国家/设备查看。
+> 在 AdSense 后台为每个位置创建一个广告单元，拿到 slot ID 填到对应环境变量。AdSense 会根据访客设备自动选择最合适的尺寸。
 
-### 10.3 iframe 隔离方案
+### 10.2.1 Affiliate 建议位（v2.0，广告位之外的第二变现形态）
 
-**每个广告位一个独立 html**（放 `public/ads/`）：
-```html
-<!-- public/ads/banner-320x50.html -->
-<!DOCTYPE html>
-<html>
-<body style="margin:0">
-  <script type="text/javascript">
-    atOptions = {
-      'key': 'YOUR_AD_KEY',  // 构建时通过环境变量替换，或保留占位
-      'format': 'iframe',
-      'height': 50,
-      'width': 320,
-      'params': {}
-    };
-  </script>
-  <script src="//YOUR_AD_NETWORK_DOMAIN/YOUR_AD_KEY/invoke.js"></script>
-</body>
-</html>
-```
+`<AffiliateSuggestion>`（`ArticlePage` 文末，SponsorCard 之后）渲染至多 2 张 `AffiliateLink` 卡片。与 AdSense 的关键差异：**config 门控而非 env 门控**——affiliate 是逐站内容数据（Steam 链接/外设推荐），不是部署密钥；数据在 `src/config/affiliates.ts`（CONFIG 层），默认空数组 = 不渲染（保开箱契约与 fork 纯净）。`categories` 可选字段支持按栏目限定；Sponsored 徽标走 `shared.sponsoredLabel`（en/ja）。
 
-**Astro 广告组件**：
+### 10.3 AdSenseSlot 组件
+
+底层组件 `AdSenseSlot.astro` 渲染一个 `<ins class="adsbygoogle">` 标签并 push 到 `adsbygoogle` 队列：
+
 ```astro
 ---
-// src/components/ads/AdBanner.astro
-interface Props { type: string; eager?: boolean; }
-const { type, eager } = Astro.props;
-const adKey = import.meta.env.PUBLIC_AD_BANNER_320X50;  // 环境变量驱动
-if (!adKey) return null;  // key 为空不渲染
+// src/components/ads/AdSenseSlot.astro
+interface Props {
+  position: 'sticky' | 'sidebar' | 'incontent';
+  format?: 'auto' | 'fluid';
+  responsive?: boolean;
+}
+const { position, format = 'auto', responsive = true } = Astro.props;
+const client = import.meta.env.PUBLIC_ADSENSE_CLIENT;
+const slot = import.meta.env[`PUBLIC_ADSENSE_SLOT_${position.toUpperCase()}`];
+// client 或 slot 任一为空 → return null（不渲染）
 ---
-<iframe
-  src={`/ads/${type}.html`}
-  width={type.match(/(\d+)x(\d+)/)?.[1] ?? 300}
-  height={type.match(/(\d+)x(\d+)/)?.[2] ?? 50}
-  scrolling="no"
-  loading={eager ? 'eager' : 'lazy'}
-  style="border:none"
-></iframe>
+{client && slot && (
+  <>
+    <ins class="adsbygoogle" style="display:block"
+      data-ad-client={client} data-ad-slot={slot}
+      data-ad-format={format}
+      data-full-width-responsive={responsive ? 'true' : 'false'} />
+    <script is:inline>
+      (window.adsbygoogle = window.adsbygoogle || []).push({});
+    </script>
+  </>
+)}
 ```
 
-### 10.4 Sticky 320×50（粘顶横幅组件）
+3 个位置组件（`StickyBanner` / `SidebarAd` / `InContentAd`）都是对 `AdSenseSlot` 的薄封装，负责定位（sticky / fixed / inline）和门控逻辑。
+
+### 10.4 Sticky 粘顶横幅 + 关闭逻辑
+
+`StickyBanner.astro` 在粘顶位置渲染广告，带关闭按钮（localStorage 记忆）：
 
 ```astro
 ---
 // src/components/ads/StickyBanner.astro
-const adKey = import.meta.env.PUBLIC_AD_MOBILE_320X50;
+const client = import.meta.env.PUBLIC_ADSENSE_CLIENT;
+const slot = import.meta.env.PUBLIC_ADSENSE_SLOT_STICKY;
+const show = !!(client && slot);
 ---
-{adKey && (
-  <div class="sticky top-20 z-20 py-2">
-    <div class="relative mx-auto max-w-4xl pr-10">
-      <AdBanner type="banner-320x50" eager />
-      <button
-        id="dismiss-sticky"
-        class="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border p-1"
-        aria-label="Close ad"
-      >
-        <Icon name="x" class="h-4 w-4" />
+{show && (
+  <div id="sticky-banner" class="sticky top-14 z-30 ...">
+    <div class="relative mx-auto max-w-4xl px-4">
+      <AdSenseSlot position="sticky" />
+      <button id="dismiss-sticky" aria-label="Close ad" ...>
+        <Icon name="lucide:x" />
       </button>
     </div>
   </div>
 )}
-<script>
-  // 3 行 JS：关闭按钮 + localStorage 记忆
-  const btn = document.getElementById('dismiss-sticky');
-  if (btn && localStorage.getItem('sticky-dismissed') === '1') btn.parentElement?.parentElement?.remove();
-  btn?.addEventListener('click', () => {
-    localStorage.setItem('sticky-dismissed', '1');
-    btn.parentElement?.parentElement?.remove();
-  });
+<script is:inline>
+  // 关闭按钮 + localStorage 记忆
+  (() => {
+    const banner = document.getElementById('sticky-banner');
+    const btn = document.getElementById('dismiss-sticky');
+    if (!banner || !btn) return;
+    if (localStorage.getItem('sticky-dismissed') === '1') { banner.remove(); return; }
+    btn.addEventListener('click', () => {
+      localStorage.setItem('sticky-dismissed', '1');
+      banner.remove();
+    });
+  })();
 </script>
 ```
 
 ### 10.5 环境变量驱动
 
-广告 key 全部走环境变量，**key 为空时组件 return null 不渲染**。新手部署时广告位是空的，不报错；接入广告时填 env 即生效。
+广告配置全部走环境变量，**4 个变量全填才显示广告，任一为空对应位置不渲染**。新手部署时广告位是空的，不报错；接入广告时填 env 即生效。
 
-环境变量清单见 [附录 A](#附录-a-环境变量清单)。
+| 变量 | 说明 |
+|---|---|
+| `PUBLIC_ADSENSE_CLIENT` | AdSense Publisher ID（`ca-pub-XXXXXXXXXXXXXXXX`），门控 loader 注入 |
+| `PUBLIC_ADSENSE_SLOT_STICKY` | Sticky 位置的 slot ID |
+| `PUBLIC_ADSENSE_SLOT_SIDEBAR` | Sidebar 位置的 slot ID |
+| `PUBLIC_ADSENSE_SLOT_INCONTENT` | InContent 位置的 slot ID |
+
+完整清单见 [附录 A](#附录-a-环境变量清单)。
 
 ### 10.6 广告部署流程
 
-1. 注册你的广告网络 Publisher 账号。
-2. Add Website → 填域名 → 选 Games 分类 → 选广告格式。
-3. 审核通过后，创建各广告单元拿 key。
-4. 在 Cloudflare Pages 项目 Settings → Environment variables 填入各 key。
+1. 在 [Google AdSense](https://adsense.google.com/) 注册并提交你的站点审核。
+2. 审核通过后，拿到 Publisher ID（格式 `ca-pub-XXXXXXXXXXXXXXXX`）。
+3. 在 AdSense 后台创建 3 个广告单元（建议选 Responsive），分别拿到 3 个 slot ID。
+4. 在 Cloudflare Pages 项目 Settings → Environment variables 填入 4 个变量：`PUBLIC_ADSENSE_CLIENT` + 3 个 slot ID。
 5. 重新部署，广告自动出现。
 
-> 广告接入的详细操作参考你的广告网络文档。
-
-### 10.7 Google AdSense（可选）
-
-除了 iframe 隔离方案（§10.3），AnvilWiki 也支持 Google AdSense。
-
-**配置步骤**：
-
-1. 在 [Google AdSense](https://adsense.google.com/) 注册并审核通过你的站点。
-2. 拿到 Publisher ID（格式 `ca-pub-XXXXXXXXXXXXXXXX`）。
-3. 填到环境变量 `PUBLIC_ADSENSE_CLIENT`。
-4. 在需要放广告的页面引入 `<AdSenseSlot slot="你的slot ID" />`。
-5. BaseLayout 会自动在 `<head>` 注入 AdSense 加载脚本（仅当 `PUBLIC_ADSENSE_CLIENT` 有值时）。
-
-**两种方案可以共存**：iframe 隔离方案和 AdSense 各自独立，互不干扰。填哪个的 env，哪个就生效。
+> AdSense 审核通常需要数天到数周，期间站点正常运行（广告位为空）。详见 [AdSense 帮助中心](https://support.google.com/adsense/)。
 
 ---
 
@@ -1104,7 +1062,7 @@ const adKey = import.meta.env.PUBLIC_AD_MOBILE_320X50;
 
 **套用模板** = 把通用 AnvilWiki 模板变成特定游戏的站点。只改配置层和内容层，代码层不动。
 
-完整的配置参考见 [`docs/apply-template.md`](./apply-template.md)——按文件组织，你要改什么就查对应章节。也可用 `pnpm apply-template` CLI 自动完成基础配置。
+完整的配置参考见 [`docs/apply-template.md`](./apply-template.md)——按文件组织，你要改什么就查对应章节。也可用 `pnpm apply-template` CLI 自动完成基础配置。第一个站跑通后、复制下一个站前，用 `pnpm template-audit` 检查模板健康度（见学习手册第 9 章）。
 
 ### 11.2 改动对象与 AnvilWiki 路径对照
 
@@ -1183,7 +1141,7 @@ Cloudflare Pages（连接 GitHub 仓库）
 **构建命令**：`pnpm build`
 **输出目录**：`dist`
 **环境变量**：见 [附录 A](#附录-a-环境变量清单)。
-**Node 版本**：`NODE_VERSION = 22`（与项目运行时要求保持一致）。
+**Node 版本**：`NODE_VERSION = 22`（与项目配置一致，pnpm 11 要求 ≥22.13）。
 
 **`wrangler.toml`（可选，用于本地预览）**：本 Fork 默认不提交该文件；如自行添加，它会接管 Cloudflare Pages 环境变量。
 ```toml
@@ -1244,25 +1202,32 @@ pages_build_output_dir = "dist"
 
 ### 13.2 CI 工作流（`.github/workflows/ci.yml`）
 
+触发：push 到 main + PR 到 main；Node 版本读 `.nvmrc`（22）；8 道门禁：
+
 ```yaml
 name: CI
-on: [pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
 jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout        # 实际钉 commit SHA（供应链加固）
+      - uses: pnpm/action-setup
+      - uses: actions/setup-node
         with:
-          node-version: 20
+          node-version-file: .nvmrc   # 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm typecheck       # astro check
-      - run: pnpm test             # vitest
-      - run: pnpm build            # 含 Content schema 校验
-```
+      - uses: ./.github/actions/gates  # ⭐ v2.0：八道门禁抽成共享 composite action，
+        with:                          # lint/typecheck/test(9 个测试套件)/check-config/build
+          site-url: ...                # /check-content/check-links/check-i18n 一步到位；
+```                                    # auto-content.yml 复用同一份定义，防止两处漂移
+
+另有四条工作流：`auto-content.yml`（⭐ v2.0 内容管道：workflow_dispatch 触发确定性生成器 → 八道门禁全绿才开 draft PR，LLM 永不进 CI，详见 docs/content-pipeline.md 与 ADR-004）、`content-pipeline.yml`（每周新鲜度巡检 → issue，仅上游仓库运行）、`release-ops.yml`（anvilwiki-ops 的 npm 发布通道：OIDC Trusted Publishing 零令牌，tag 与 package.json 版本一致性有守卫）与 `setup.yml`（fork 一键初始化，workflow_dispatch；初始化 PR 开出前 workflow 自己会跑一次 build 验证）。
 
 ### 13.3 关键测试用例
 
@@ -1337,7 +1302,7 @@ describe('sitemap', () => {
 | **MVP-2**：首页模块 | JSON 驱动 + 4 种 displayType（badge-list/steps/ranked-grid/labeled-cards）+ Hero/QuickStart/Explore/CTA/Footer/Video/RecentUpdates+Trending（v0.2 结构） | 换 en.json 数据，首页无组件改动即生效 | 1-2 天 |
 | **MVP-3**：SEO | sitemap 动态 + JSON-LD 全套（Organization/WebSite/Article/Breadcrumb/ItemList/FAQPage）+ hreflang + robots | Google Rich Results Test 全通过 | 1 天 |
 | **MVP-4**：主题换肤 | CSS 变量双变量（`--brand` + `--brand-light`）+ 暗色模式 + 主题切换器 | 改 globals.css 4 行整站变色 | 0.5 天 |
-| **MVP-5**：广告系统 | 广告 iframe 隔离（6 种广告位）+ Sticky 320×50 + 环境变量驱动 + 关闭按钮 | 移动端 + 桌面端广告正常显示不串号 | 1 天 |
+| **MVP-5**：广告系统 | Google AdSense（3 个广告位：Sticky / Sidebar / InContent）+ Sticky 关闭按钮 + 环境变量驱动 | 移动端 + 桌面端广告正常显示 | 1 天 |
 | **MVP-6**：套用模板文档 | 配置参考手册（按文件组织）+ 新手 README + docs/ 全套 | 新手照 README 30 分钟内部署上线 | 1-2 天 |
 | **v1.0**：基准实测与发布 | ✅ 已完成 — demo 站 `anvilwiki.pages.dev` 已上线，Lighthouse 全 100（Performance / Accessibility / Best Practices / SEO） | 性能目标全部达成，demo 站可访问 | 1 天 |
 
@@ -1352,14 +1317,29 @@ describe('sitemap', () => {
 | v1.3 | 更多 displayType（video-grid/timeline/comparison-table） | 中 | ✅ 已实现 timeline + video-grid（缩略图跳转,首页不 embed YouTube,保 Lighthouse 4×100）;comparison-table 待验证（见下） |
 | v1.4 | 评论系统（Giscus，默认关闭，env 驱动） | 低 | ✅ 已实现（`Comments.astro` env 门控 + 官方 `<script data-loading="lazy">` + 双 MutationObserver 暗色同步；详见 `docs/comments.md`） |
 | v1.5 | 图片优化（Astro Image，自动 WebP/AVIF + 响应式 srcset） | 中 | ✅ 已实现（content schema `image()` loader + `ArticleCover.astro` + `image.responsiveStyles`，封面图自动 WebP/srcset，`content.config.ts` 迁至 `src/`） |
-| v2.0 | 套用模板 CLI（`pnpm apply-template` 引导式配置） | 高 | ✅ 已实现（`scripts/apply-template.ts` 步骤 1 自动化：hex→HSL 主题色、site/navigation/routing/ui/locales/manifest 重写，`--dry-run` / `--no-clear-content` flag） |
+| ~~v2.0~~（v1.x 期里程碑，原标 v2.0，实际随 v1 线交付） | 套用模板 CLI（`pnpm apply-template` 引导式配置） | 高 | ✅ 已实现（`scripts/apply-template.ts` 步骤 1 自动化：hex→HSL 主题色、site/navigation/routing/ui/locales/manifest 重写，`--dry-run` / `--no-clear-content` flag。注：此行版本号是规划期占位，与下方 **v2.0.0** 正式版无关） |
+| v1.5 | 内链 + 时效性 + 表达力（详见 `docs/superpowers/ROADMAP-v1.5-v1.6.md`） | 高 | ✅ 已实现（标签落地页 `/tags` + 可点击 tag / gameVersion 徽章 / `/recent` / Callout / Accordion / draft（dev 可见 build 排除）/ VideoObject JSON-LD / 404 增强（搜索+分类入口）/ SponsorCard env 门控 + FUNDING.yml / README wrangler 警告） |
+| v1.6 | 创作者维护工具 + 部署自动化（check-i18n / setup workflow / 内容层 CLI / 死链对账等） | 中 | ✅ 已实现（`pnpm check-i18n` 翻译覆盖率 + `pnpm check-links` dist 内链审计（均入 CI）/ Initialize workflow 一键初始化 / CF Web Analytics 门控 / staying-up-to-date 文档 / apply-template 内容骨架 / README 对比表+showcase 征集） |
+| v1.7 | 内容表达力二期 + E-E-A-T（画廊/作者体系/联盟链接/内容 lint） | 中 | ✅ 已实现（`gallery` frontmatter + 原生 dialog lightbox + ImageObject JSON-LD / `authors.ts` 注册表 + Person JSON-LD / `<AffiliateLink>` sponsored nofollow 组件 / `pnpm check-content` 内容 lint；og:image 自动生成与 PWA 留待 v1.8 按用户反馈排期） |
+| v1.8 | AI 原生内容生产 + 新鲜度管道（第一性原理路线②③①④） | 高 | ✅ 已实现（`.agent/skills/` 3 技能 + AGENTS.md 对话式产页章节 / `codes` frontmatter + CodesTable 自动分区 + FAQPage JSON-LD / `pnpm refresh-audit` 确定性审计 + content-pipeline.yml 每周定时开 issue（绝不自动改内容）/ docs/game-selection.md 选品漏斗 + 首日 10 页） |
+| v1.10 | 官网开发指南板块（landing「怎么用」5 步上手向导） | 低 | ✅ 已实现（`DevGuide.astro` 时间线：fork → apply-template CLI → AI 对话产页 → 免费部署 → 保持新鲜，每步附命令 + 文档链接，底部通向 docs/README.md 四条阅读路径；文案在 `landing.ts` `devGuide`，随 CLI 整目录删除，fork 零残留） |
+| v1.11 | 站内文档中心（/landing/docs 双手册：SOP + AI 提示词） | 高 | ✅ 已实现（四专家定档；`handbook` collection 源于 `docs/handbook/{en,zh}/` 9 章（学习 5 + 开发 4），每步 SOP + P01-P11 提示词模板 + 验收三件套；中英 1:1 parity 测试硬门禁；BreadcrumbList/TechArticle JSON-LD + sitemap lastmod + llms.txt 门控段；CLI 删 landing 路由但**保留手册**（fork 站长可直接用提示词 SOP），fork 模拟构建绿） |
+| v1.13 | 手册零基础化全量重写（第一性原理体系 + 白话规范） | 高 | ✅ 已实现（第二轮四专家定档:科普写作/第一性原理架构/新手测试员/模板守门；统一七段骨架+四段式步骤（做什么/怎么做/你会看到/确认做对了）+固定类比库+首现术语定义；补「装好 6 样工具」序幕（旧版最大流失点）与域名/广告位/upstream 等断链；13 提示词块守恒、事实限定词逐条 grep 验收存活；中英 18 章同源重写） |
+| v1.14 | 手册分册成页 + 章节拆细（8+6 章、列表展示） | 中 | ✅ 已实现（学习/开发手册各自独立成页 /landing/docs/learn|dev（中英四页）+ 手册页编号列表；学习 5→8 章（装工具/上线/收录/接广告各自独立）、开发 4→6 章（定制/集成各一分为二）；hub 改选择页（全景清单+两张手册卡）；互链全部重接、旧 slug 零残留；en 14 章 2 agent 同源重写） |
+| v1.15 | 站长运营 CLI + MCP（`anvilwiki-ops`：第一性原理路线②④产能闭环） | 高 | ✅ 已实现（`tools/anvil-ops/` 独立 npm 包双 bin：`anvil-ops` CLI + stdio MCP server；doctor/metrics/audit/insights/submit 五命令 = 五 MCP 工具；GSC 服务账号 + CF Web Analytics GraphQL 双数据源，env 门控空=禁用；insights 5 规则引擎（阈值常量集中）；submit=校验→分支→push→gh 开 PR，永不 push main；56 测试+真 git bare 集成测试；开发手册新增第 7 章「AI 自动化运营」中英；**anvilwiki-ops 0.1.1 已上架 npm，`npx anvilwiki-ops` 实名验证通过**；v1.15.0 已发版） |
+| v1.16 | 社区案例库（Showcase：真实用户站点展示） | 低 | ✅ 已实现（首批 3 站点 aniimo.wiki / nomanssky.wiki / steal-anegg.wiki；数据源唯一 `landing.ts` 的 `COMMUNITY_SITES`，展示 3 处：/landing 与 /zh/landing 的 CommunitySites 区块 + README 中英表格；数据与组件均在 CLI `LANDING_PATHS` 内，fork 自动清理；详见 §15.6；v1.16.0 已发版） |
+| v1.17 | demo 媒体示范 + 媒体密度指引（拉平「能力 vs 示范」倒挂） | 中 | ✅ 已实现（每类文章完整示范媒体能力：codes 双语封面、boss 机制画廊（`src/assets/gallery/`）、tier-list 正文内联卡片图（`public/images/articles/`）、i18n 视频对齐；`scripts/gen-demo-media.mjs` 生成 7 张示意图可复现；`.prose img:not([class])` 16:9 零 CLS 盒子；媒体密度表进 content-format.md / anvil-new-article skill / AGENTS.md / 学习手册 first-10-pages 章中英；fork 清理：apply-template `clearDemoAssets` + setup.yml 同步按名删 demo 素材（fork 模拟构建绿）；v1.17.0 已发版，v1.17.1 复审补丁（图内事实校正：3 标记/20s puddle/2s 窗口/wind-up 数值对齐正文）） |
+| v1.18 | 模板化 + 批量内页（生财航海关卡 7/8：放大能力） | 高 | ✅ 已实现（`pnpm template-audit` 模板健康检查：代码层纯净度（注释剥离后扫 demo 字符串）/配置层换皮/内容层可替换性/换皮残留 4 组 ✅⚠️❌ 评分，❌ 才非零退出；`pnpm bulk-new-posts` 批量脚手架：CSV/TSV 关键词清单（RFC4180 引号解析）→ 全量校验（locale/category/slug 冲突/description 40-165）→ 全部合法才写入 `draft: true` 草稿，已存在文件跳过绝不覆盖，`--dry-run` 预览；`.agent/skills/anvil-batch-articles` 批量内容技能（意图归类→清单→统一提示词→全批验收，含灌水/编造/内链/句式重复 5 条铁律）；学习手册新增第 9 章「把第一个站打磨成模板」+ 第 10 章「批量做内页」中英（learn 8→10 章，提示词 13→16 个——13 为 v1.17.1 加媒体提示词后已漂移未同步的旧值）；README/docs/landing/AGENTS 计数同步；发版前专家审查补 8 项修复：占位 description 长标题超 165 会炸 build→自动降级、demo 文章内容级检测、site.name 换皮检查、`-n` 别名/未闭合引号/目录入参边界、第 9 章三层表格对齐规格、zh 错字；v1.18.0 已发版） |
+| v1.19 | SEO 进阶 + 2026 搜索格局对齐 | 中 | ✅ 已实现（学习手册第 11 章 `seo-traffic`「SEO 进阶：从被收录到排上去，再到被 AI 引用」中英——一页一词选词地图、单页做满自检清单、站点信任三慢变量、2026 新规则失效清单（FAQ 富结果移除/llms.txt 对 Google 无效/AI Overviews 引用偏好/封面图成图片搜索入口），配 2 个可复制提示词（关键词选题分析 + 全站 SEO 自检），learn 10→11 章、提示词 16→18 个；`docs/seo.md` 新增「Google 官方规范更新记录（2026）」9 条时间线（含 2026-08-18~21 spam update 与 08-20 preferred sources）；`docs/content-format.md` 媒体密度表补封面图质量三原则（og:image 自 2026-03 起为 Google 选图首选）；新增 `docs/roadmap.md` 公开路线图（八段演化主线 + 近期候选 + v2.0 方向 + 不做清单）；README/docs/landing/AGENTS 计数同步；v1.19.0 已发版） |
+| **v2.0.0** | **内容经营操作系统**（PR 门控内容管道 + 多站管理 + og:image 产能 + 变现建议位） | 高 | ✅ 已实现（① `auto-content.yml` 内容管道：workflow_dispatch + 确定性生成器（import-csv → bulk-new-posts）→ **八道门禁前置**（全绿才开 draft PR）→ create-pull-request v8 固定分支幂等，LLM 永不进 CI、secrets 零引用；八道门禁抽成共享 composite action `.github/actions/gates`（ci.yml 同源复用），ADR-004；tests/workflows.test.ts 钉安全契约。② `anvilwiki-ops` 0.1.3→**1.0.0**：多站注册表 `~/.config/anvil-ops/sites.toml`（凭据永不入表）+ `--site`/`--all` + `sites list/add/remove`；AI 引用追踪三通道（CF Web Analytics AI referrals 主通道 + GSC `AI_OVERVIEWS` 探测（实验）+ `metrics --import-aio` CSV 导入）；MCP 五工具加可选 `site` 参数（1.0 唯一 breaking），测试 60→111；ADR-005。③ `pnpm gen-covers` 封面生成：satori+resvg-js+subset-font，**1200×675**（Google Discover ≥1200px 宽门槛）+ 全站 `max-image-preview:large`（BaseLayout）；品牌色运行时读 globals.css 单一真相；CJK 标题按字符子集 Noto Sans CJK（缓存 node_modules/.cache，不进 git）+ 内置 OFL Lato；manifest hash 缓存；封面标准 800×450→1200×675 全文档同步、demo 封面重生成。④ `<AffiliateSuggestion>` 文末建议位：config 层 `src/config/affiliates.ts`（默认空=不渲染）复用 AffiliateLink 卡片、`shared.sponsoredLabel` i18n（en/ja）。文档：docs/content-pipeline.md + docs/multi-site.md 新增并进索引、手册 ai-ops 章双语文本（章数不变 learn 11/dev 7）、ADR-004/005、staying-up-to-date.md MAJOR 措辞修订（里程碑 major、模板侧零迁移）、README/CHANGELOG/AGENTS/landing 同步；模板仓库零 breaking，v2.0.0 发版） |
+
 
 **v1.3 范围说明**：
 - `timeline`：✅ 实现 —— 版本日志/活动时序，零副作用，商业价值正（老玩家点进 patch notes 文章页）。
 - `video-grid`：✅ 实现（缩略图 + 跳转，不 embed）—— 保住 Lighthouse 100，流量留站内变现（embed 会让用户看视频时广告曝光归 YouTube）。
 - `comparison-table`：⏸ 推迟 —— 广告变现模型下，对比表把信息完整呈现后用户无点击动力（信息已满足），ROI 为负。等真实用户反馈「我首页需要对比表」再做，做时需重新设计「如何驱动用户点进文章页」。
 
-详见 `docs/superpowers/specs/2026-08-12-v1.3-display-types-design.md`。
+(设计推演过程见 git 历史中该时期的 commit 记录。)
 
 ### 14.3 「待验证清单」回填计划
 
@@ -1394,19 +1374,32 @@ describe('sitemap', () => {
 | 文档 | 受众 | 位置 |
 |---|---|---|
 | README.md（中英双语） | 所有用户，新手入门 | 仓库根目录 |
-| docs/PRD.md | 贡献者、想深入了解设计的人 | 本文档 |
-| docs/deployment.md | 新手，部署指南 | docs/ |
-| docs/apply-template.md | 套用模板用户，配置参考 | docs/ |
+| docs/README.md | 文档中心索引（按角色与时机组织，附阅读路径） | docs/ |
+| docs/handbook/（中英 18+18 篇） | 零基础站长（learn 11 章）/ 定制者（dev 7 章）；站内 `/landing/docs` 渲染同一内容 | docs/handbook/ |
+| docs/game-selection.md | 想建站赚钱的人：选品漏斗 + 首日 10 页 | docs/ |
+| docs/sourcing.md | 挖词 9 渠道 + 意图满足度判断（v2.1.0） | docs/ |
+| requirements/（2 张填空模板） | 产页前素材准备：事实来源表 + 对标参考表（v2.1.0） | 仓库根 requirements/ |
+| docs/apply-template.md | 套用模板用户，配置参考（含初始化清理规范） | docs/ |
+| docs/deployment.md | 新手，部署指南（含 wrangler.toml 大坑 + 数据复盘） | docs/ |
 | docs/content-format.md | 内容创作者，MDX 格式 | docs/ |
-| docs/seo.md | 进阶用户，SEO 调优 | docs/ |
+| docs/content-pipeline.md | 想批量铺内容的站长：PR 门控管道（v2.0） | docs/ |
+| docs/multi-site.md | 多站运营：anvilwiki-ops 1.0 + AI 引用追踪（v2.0） | docs/ |
+| docs/seo.md | 进阶用户，SEO 调优 + 外链实操 | docs/ |
+| docs/ads.md | 开始赚钱的站长：广告时机 + 收款 + 平台全景（v2.1.0 起） | docs/ |
+| docs/comments.md | 需要 Giscus 评论的站长 | docs/ |
+| docs/staying-up-to-date.md | fork 用户：怎么同步上游更新 | docs/ |
 | docs/migration-from-nextjs.md | 传统 Next.js 模板用户，迁移指南 | docs/ |
+| docs/development.md | 贡献者：架构、模式、验证、发版 | docs/ |
+| docs/PRD.md | 贡献者、想深入了解设计的人 | 本文档 |
+| docs/roadmap.md | 想判断模板方向的人：演化主线 + 不做清单 | docs/ |
+| docs/superpowers/ | ADR 级设计决策存档（specs/）+ 实施计划（plans/）+ v1.5-v1.6 规划存档 | docs/superpowers/ |
 
 ### 15.3 Demo 站策略
 
 - **官方 demo**：`anvilwiki.pages.dev`，用虚构游戏 "Anvil Quest" 做一个完整 demo 站。
-- **源码**：`examples/anvil-quest/` 子目录（或独立分支）。
+- **源码**：demo 内容就在本仓库内（`src/content/wiki/`，英文在根、日文带前缀）——fork 后由 `pnpm apply-template` / setup 工作流整体替换。
 - **目的**：让用户直观看到 AnvilWiki 长什么样、性能如何。
-- **dogfooding**：AnvilWiki 的文档站（`docs.anvilwiki.dev`）也用 AnvilWiki 自身构建，验证模板能力。
+- **文档中心**：站内 `/landing/docs` 双手册（learn 11 章 + dev 7 章，中英），markdown 源在 `docs/handbook/`，fork 保留。
 
 ### 15.4 社区运营
 
@@ -1425,6 +1418,20 @@ describe('sitemap', () => {
 3. **GitHub Topic**：打标签 `astro` / `cloudflare-pages` / `wiki-template` / `game-wiki` / `seo` / `open-source`。
 4. **SEO 自证**：AnvilWiki demo 站本身做到 Google 首页（搜 "anvil quest wiki"），证明模板的 SEO 能力。
 
+### 15.6 案例库（Community Showcase）
+
+真实用户站点是最有力的模板证明。首批评审通过 3 个社区站点（2026-08-18）：
+
+| 站点 | 游戏 |
+|---|---|
+| aniimo.wiki | Aniimo（Roblox） |
+| nomanssky.wiki | 无人深空（Steam） |
+| steal-anegg.wiki | Steal an Egg（Roblox） |
+
+- **数据源唯一**：`src/config/landing.ts` 的 `COMMUNITY_SITES`（locale 无关数组 + 中英双语简介），用户提 PR 追加即可。
+- **展示位 3 处**：官网 `/landing` 与 `/zh/landing` 的「Built with AnvilWiki」区块（`CommunitySites.astro`，位于特性网格 6 卡之后、对比表之前）+ README 中英双语 Showcase 表格。
+- **fork 自动清理**：案例数据与组件均在 `src/config/landing.ts` / `src/components/landing/` 内，属 `apply-template` 的 `LANDING_PATHS` 删除清单，fork 用户得到纯净模板（零案例残留）。
+
 ---
 
 ## 附录 A 环境变量清单
@@ -1435,18 +1442,14 @@ describe('sitemap', () => {
 |---|---|---|---|
 | `SITE_URL` | 站点绝对 URL（sitemap/og:image/robots 拼接用） | `https://anvilquestwiki.wiki` | ✅ |
 
-### A.2 广告 key（广告网络）
+### A.2 广告（Google AdSense）
 
-| 变量名 | 广告类型 |
+| 变量名 | 用途 |
 |---|---|
-| `PUBLIC_AD_MOBILE_320X50` | Sticky 粘顶横幅 |
-| `PUBLIC_AD_SIDEBAR_160X300` | 侧边栏半高 |
-| `PUBLIC_AD_SIDEBAR_160X600` | 侧边栏竖幅 |
-| `PUBLIC_AD_BANNER_728X90` | 大横幅 |
-| `PUBLIC_AD_BANNER_300X250` | 中等矩形 |
-| `PUBLIC_AD_BANNER_468X60` | 经典横幅 |
-| `PUBLIC_AD_NATIVE_BANNER` | Native Banner |
-| `PUBLIC_ADSENSE_CLIENT` | AdSense 自动广告（可选） |
+| `PUBLIC_ADSENSE_CLIENT` | AdSense Publisher ID（`ca-pub-XXXXXXXXXXXXXXXX`），门控 loader 注入 |
+| `PUBLIC_ADSENSE_SLOT_STICKY` | Sticky 粘顶横幅 slot ID |
+| `PUBLIC_ADSENSE_SLOT_SIDEBAR` | Sidebar 桌面端侧边栏 slot ID |
+| `PUBLIC_ADSENSE_SLOT_INCONTENT` | InContent 文章内 slot ID |
 
 > 所有广告变量为空时，对应广告组件 `return null` 不渲染。新手部署时不填也能正常上线。
 
@@ -1465,14 +1468,10 @@ describe('sitemap', () => {
 SITE_URL=https://your-domain.wiki
 
 # 广告（可选，留空则不显示）
-PUBLIC_AD_MOBILE_320X50=
-PUBLIC_AD_SIDEBAR_160X300=
-PUBLIC_AD_SIDEBAR_160X600=
-PUBLIC_AD_BANNER_728X90=
-PUBLIC_AD_BANNER_300X250=
-PUBLIC_AD_BANNER_468X60=
-PUBLIC_AD_NATIVE_BANNER=
 PUBLIC_ADSENSE_CLIENT=
+PUBLIC_ADSENSE_SLOT_STICKY=
+PUBLIC_ADSENSE_SLOT_SIDEBAR=
+PUBLIC_ADSENSE_SLOT_INCONTENT=
 
 # 分析（可选）
 PUBLIC_GA_ID=
@@ -1551,13 +1550,13 @@ PUBLIC_GA_ID=
 ### B.7 广告（上线 2-3 天后）
 
 ```
-□ 广告网络账号已注册，网站已审核通过
-□ 各广告 key 已配到 Cloudflare 环境变量
+□ Google AdSense 账号已注册，网站已审核通过
+□ 4 个广告变量已配到 Cloudflare 环境变量（CLIENT + 3 个 slot ID）
 □ 移动端 + 桌面端广告正常显示不破版
-□ 320×50 Sticky 正常，有关闭按钮
+□ Sticky 粘顶横幅正常，有关闭按钮
 □ 桌面端侧边栏广告 fixed 正常
-□ 无自动弹窗 / 跳转（有则检查广告设置）
-□ 广告网络后台 impression 数在涨
+□ 无自动弹窗 / 跳转（有则检查 AdSense 设置）
+□ AdSense 后台 impression 数在涨
 ```
 
 ---
@@ -1576,8 +1575,8 @@ PUBLIC_GA_ID=
 | **displayType** | 首页模块的渲染类型（badge-list/steps/ranked-grid/labeled-cards） |
 | **JSON-LD** | 结构化数据格式，告诉搜索引擎页面内容类型 |
 | **hreflang** | 多语言页面 alternate 链接，告诉搜索引擎各语言版本位置 |
-| **iframe 隔离** | 每个广告用独立 iframe，避免 atOptions 串号 |
 | **Sticky 广告** | 粘在屏幕固定位置的广告，曝光时长更长，CPM 更高 |
+| **AdSense slot** | Google AdSense 广告单元 ID，一个 slot 对应一个广告位 |
 | **分层架构** | 代码层 / 配置层 / 内容层 分离，套用模板只改后两层 |
 | **homepage-only 模式** | 只上线首页，无文章内容，后续慢慢补 |
 | **dogfooding** | 自己用自己的产品（AnvilWiki 文档站用 AnvilWiki 构建） |
@@ -1592,6 +1591,12 @@ PUBLIC_GA_ID=
 | 2026-08-12 | v0.2 | MVP 全部实现（MVP-0 至 MVP-5 + P0-P3）；更新待验证清单状态 |
 | 2026-08-12 | v0.3 | SEO 章节更新：Schema 状态（§8.6）、FAQ rich results 废弃说明、INP 阈值修正为 ≤ 200ms |
 | 2026-08-12 | v1.0 | demo 站 `anvilwiki.pages.dev` 上线；Lighthouse 全 100；v1.2 Pagefind 搜索 + v1.5 Astro Image + v2.0 套用模板 CLI 全部实现；完整日语翻译；SEO 修复（hreflang / og:image / prefetch / breadcrumb / security headers） |
+| 2026-08-22 | v2.0.0 | 内容经营操作系统：PR 门控内容管道（auto-content.yml + 共享门禁 composite action）+ anvilwiki-ops 1.0.0 多站与 AI 引用追踪 + gen-covers 封面生成（og:image 标准 1200×675 + max-image-preview:large）+ AffiliateSuggestion 建议位；模板零 breaking（升级=常规 merge）。v1.1–v1.19 逐版本明细见 CHANGELOG.md 与 §14.2 迭代表 |
+| 2026-08-24 | v2.0.1 | v2.0.0 发版当日五视角审计的同日加固版：category 改 schema enum 硬门禁（软 404 根除）、check-i18n `--strict-ui` 让第八道门禁真正能红、setup.yml 开 PR 前构建验证、auto-content 只提交内容变更 + 零产出响亮失败、ops 测试进主 CI、sitemap hreflang 按真实 MDX 覆盖生成、anvilwiki-ops 1.0.1（MCP 站点解析防吞错、GSC 错误带修复指引、worker 线程卸载、测试 111→125）、demo 内容规则补课；详见 CHANGELOG [2.0.1] |
+| 2026-08-26 | v2.1.0 | SEO 实战文档批（零代码变更，fork 常规 merge 即得）：新增 `docs/sourcing.md` 挖词与选词指南（9 渠道 + 第 7 条判断「意图满足度」+ 选词决策管理表，补选品漏斗的「渠道」层）、`docs/ads.md` 广告时机与 Adsterra 收款两条路线（USDT/OKX 与 Payoneer wire transfer）、`requirements/` 建站前内容准备两模板（事实来源表 + 对标参考表，闭环「AI 不编造游戏数据」）；`docs/seo.md` 增外链策略章、`docs/deployment.md` 增上线数据复盘指标（CTR≥2%/日点击 1000/人均 1.5 页/每周 10+ 只加不改）+ Clarity 热力图接入、`docs/game-selection.md` 明确首版 10-15 篇核心页分批上线（批量生成 40-60 篇可以、部署分批）；学习手册第 7 章中英同步补「先说时机：别一上线就开广告」；详见 CHANGELOG [2.1.0] |
+| 2026-08-26 | v2.1.1 | 手册同步与初始化规范批：学习手册 7 章双语接 v2.1.0 文档层（ch1 挖词 9 渠道+意图满足度、ch4 requirements 准备表+首版 10-15 篇分批、ch6 上线 3-7 天复盘指引、ch8 四条及格线指标表+Clarity 热力图小节、ch10 翻正节奏、ch11 外链策略节、ch7 统计三件套 GA4/CF Web Analytics/Clarity 完整接入教程含同意横幅门控说明）；`docs/apply-template.md` 新增「初始化清理规范」章节（两通道删除清单首次文档化）；setup.yml 中文官网删除路径收窄对齐 LANDING_PATHS、apply-template.ts wrangler `[vars]` 重置与 setup.yml 逐行对齐（两处通道漂移修复）；en/weekly-ops tldr 超 480 字符 schema 上限修复；详见 CHANGELOG [2.1.1] |
+| 2026-08-26 | v2.2.0 | 变现+外链实操文档批（零代码变更）：`docs/ads.md` 新增 AdSense 收款完整教程（W-8BEN 10% 协定税率/PIN 明信片 4 次寄送 4 个月期限/电汇绑卡/每月 21 日出账节奏）、Adsterra 接入教程（五广告格式取舍表 + Google 政策「挂 AdSense 禁 popunder」共存红线 + 脚本粘贴位置 BaseLayout/ArticlePage）、广告平台全景三档表（2026-08 实时门槛：Journey 1k sessions/Mediavine $5k 年收入/Raptive 25k PV）+ 游戏垂直网络层（NitroPay/Venatus/Playwire/PubNation，全景表 11 平台全挂官网直链）+ 游戏 wiki 五档分阶段路线表；`docs/seo.md` 外链章扩到操作层（九渠道优先级清单 + 逐渠道步骤 + 三份 outreach 邮件模板 + 免费工具箱 + 做多少节奏节；HARO 2025 复活/Reddit 10% 全站规则调研校准）；学习手册第 7 章双语新增「收款三件事」节、tldr 两步走改三步走；详见 CHANGELOG [2.2.0] |
+| 2026-08-26 | v2.3.0 | 新手动线优化批（专家团三线审计驱动）：README 按零基础标准重构（pnpm 前置/「push 回 fork」步骤/零终端 Actions→Initialize AnvilWiki 通道/wrangler 警告下沉部署步骤/文档导航收敛 4 入口/英文区对齐中文区/语言切换锚+截图+Contributing·Changelog 入口/删误导性 Deploy 按钮）；落地页转化（hero 与 FinalCta 主 CTA 直达 Fork URL、docsEntry SEO 卡+devGuide 五步链接改站内手册章、写死章数 6 处移除、公告压缩）；HandbookHub 新增 beginnerHint 零基础胶囊（接口+双语数据+组件）；两章「下一步」补链接；文档漂移清理（Comments 断链/PRD §15.2 文档表 7→20 项/roadmap 版本头/ROADMAP-v1.5-v1.6.md 归档 superpowers/）；详见 CHANGELOG [2.3.0] |
 
 ---
 

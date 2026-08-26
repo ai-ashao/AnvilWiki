@@ -19,9 +19,37 @@
 | 所有 UI 文案（首页、导航、页脚） | [src/locales/en.json](#5-ui文案) |
 | favicon / Hero 图 / PWA | [public/](#6-静态资源) |
 | 文章内容 | [src/content/wiki/](#7-mdx-文章) |
-| 广告 key | Cloudflare 环境变量 `PUBLIC_AD_*`（参考你的广告网络文档） |
+| 广告 key | Cloudflare 环境变量 `PUBLIC_ADSENSE_*`（参考 [Google AdSense](https://adsense.google.com/)） |
 
 > 想自动化基础配置？运行 `pnpm apply-template`，它会交互式引导你完成 site.ts / navigation.ts / globals.css / routing.ts / locales 的修改。
+
+---
+
+## 初始化清理规范（fork 后哪些"没用的内容"会被删掉）
+
+模板作为 demo 站分发，自带一批**demo 专属内容**——fork 做你自己的游戏站时它们全是累赘。两条初始化通道共享同一份删除清单：
+
+| 通道 | 怎么触发 | 特点 |
+|---|---|---|
+| `pnpm apply-template`（本地 CLI） | 终端交互式，自己点确认 | 会改游戏名/主题/语言/栏目；删除前逐项确认 |
+| Actions → **Initialize AnvilWiki** workflow | fork 仓库里点 Run workflow | 只做安全项（域名构建校验 + 删 landing + 清 demo），**开 PR 前先跑 `pnpm build` 验证**再交给你审 |
+
+**删除清单（两个通道一致，改动必须同步 `scripts/apply-template.ts` 与 `.github/workflows/setup.yml`）：**
+
+| 类别 | 具体内容 | 说明 |
+|---|---|---|
+| demo 文章 | `src/content/wiki/*/*/*.mdx` 全部（目录结构保留） | CLI 清空后**每个所选栏目自动补 1 篇英文脚手架**，保证 build 不空转 |
+| demo 配图 | `src/assets/gallery/`、`public/images/articles/` 整目录；5 张封面按**文件名**删（`src/assets/covers/` 下 `*-cover.png`） | 按名删除而非通配——你已换成自己封面时绝不会被误删 |
+| 项目官网 | `src/components/landing/`、`src/config/landing.ts`、`src/pages/landing*`（含站内文档中心 /landing/docs）、`src/pages/zh/landing*`（中文官网）、`public/images/showcase/`、`public/images/wechat-qr.jpg` | fork 站不需要 AnvilWiki 项目自述页；`docs/handbook/` **markdown 源保留**当参考文档，只删路由 |
+| 官网回链 | `src/config/project.ts` 的 `landingLinkEnabled` 翻为 `false` | 页面 header 的"返回官网"按钮随删随关 |
+| demo 凭据 | 若仓库存在 `wrangler.toml`，本地 CLI 会重置 `[vars]`；本 Fork 默认不提交该文件，改由 Cloudflare Dashboard 配置 `SITE_URL` 和各项 `PUBLIC_*` 变量 | 不要沿用其他站点的评论、统计或广告配置 |
+| demo 作者 | `src/config/authors.ts` 里 `// DEMO` 标记的作者条目 | 否则 Person JSON-LD 会引用虚构作者 |
+
+**保留不删（有意设计）**：favicon/hero 图等二进制资产（CLI 生成不了，脚手架下一步指引你手动换）；`docs/handbook/` 手册源码；空的语言 JSON 文件（无害孤儿，路由不再引用）。
+
+**逃生口**：`pnpm apply-template --dry-run`（只打印不写入）、`--no-clear-content`（保留 demo 文章）、`--keep-landing`（保留项目官网）。
+
+**事后体检**：`pnpm template-audit`——四层扫描（代码层无 demo 字符串 / 配置层是否还挂 demo 域名 / 内容层残留 / 换皮遗留文件），fork 站上线前跑一次确认没有"Anvil Quest"残留。
 
 ---
 
@@ -70,10 +98,11 @@ export const site = {
 
 ```ts
 export const NAVIGATION_CONFIG = [
-  { key: 'bosses', path: '/bosses', icon: 'lucide:swords' },
-  { key: 'guides', path: '/guides', icon: 'lucide:book-open' },
-  { key: 'codes',  path: '/codes',  icon: 'lucide:gift' },
-  // → 改成你的游戏需要的内容分类
+  { key: 'bosses', path: '/bosses', icon: 'lucide:swords', isContentType: true, order: 1 },
+  { key: 'guides', path: '/guides', icon: 'lucide:book-open', isContentType: true, order: 2 },
+  { key: 'codes',  path: '/codes',  icon: 'lucide:gift',     isContentType: true, order: 3 },
+  // → 改成你的游戏需要的内容分类。isContentType 与 order 都是必填
+  //   （isContentType 标记"有 MDX 内容目录的分类"，order 控制导航排序）。
 ];
 ```
 
@@ -91,24 +120,28 @@ export const NAVIGATION_CONFIG = [
 
 ## 3. 主题色
 
-**文件**：`src/styles/globals.css`（顶部 4 行）
+**文件**：`src/styles/globals.css`（顶部 8 行：4 个变量 × 亮/暗）
 
 ```css
 :root {
   --brand: 22 90% 52%;        /* 亮色主色（HSL，空格分隔） */
   --brand-light: 22 90% 62%;  /* 亮色浅色变体 */
+  --brand-h: 22;              /* 色相（--brand-text 派生用） */
+  --brand-s: 90%;             /* 饱和度（--brand-text 派生用） */
 }
 .dark {
   --brand: 22 85% 48%;        /* 暗色主色 */
   --brand-light: 22 85% 58%;  /* 暗色浅色变体 */
+  --brand-h: 22;
+  --brand-s: 85%;
 }
 ```
 
-**怎么换色**：把你的 hex 色值转成 HSL（用 [w3schools HSL 转换器](https://www.w3schools.com/colors/colors_hsl.asp) 或任何工具），替换这 4 行的值。其他 CSS 变量（`--background` / `--foreground` / `--border` 等）通过 `var(--brand)` 自动跟随，不用改。
+**怎么换色**：把你的 hex 色值转成 HSL（用 [w3schools HSL 转换器](https://www.w3schools.com/colors/colors_hsl.asp) 或任何工具），替换这 8 行的值（`--brand-text` 由 `--brand-h/--brand-s` 自动派生，不用手改——漏改 h/s 会让文字色残留旧色相）。其他 CSS 变量（`--background` / `--foreground` / `--border` 等）通过 `var(--brand)` 自动跟随，不用改。
 
 **验证**：
 ```bash
-grep "brand" src/styles/globals.css          # 确认 4 行已更新
+grep "brand" src/styles/globals.css          # 确认 8 行已更新
 grep -rn "#[0-9a-fA-F]\{6\}" src/components/  # 确认组件里无硬编码 hex
 ```
 
@@ -178,7 +211,7 @@ echo '{}' > src/locales/ru.json
 - `home.meta.title` / `description`：SEO 元数据（title 50-60 字符，description 150-160 字符）
 - `home.hero`：Hero 区域（`badge` / `title` / `description` / `ctaPrimary` / `ctaSecondary`）
 - `home.start.cards[]`：QuickStart 卡片（4 张，每张含 `icon` + `href`）
-- `home.explore.modules[]`：内容模块（4 个，每个含 `displayType` + `highlights[]`）
+- `home.explore.modules[]`：内容模块（当前 demo 为 6 个，每个含 `displayType` + `highlights[]`）
 - `home.closingCta`：底部号召文案
 
 **SEO 要求**：`home.explore.modules[].name` 必须包含游戏名。
@@ -204,7 +237,6 @@ echo '{}' > src/locales/ru.json
 | `android-chrome-192x192.png` / `android-chrome-512x512.png` | Android 主屏图标 |
 | `manifest.json` | PWA manifest（改 `name` / `short_name`） |
 | `images/hero.webp` | Hero 图（模板自带可能是占位，必须换成真实图） |
-| `ads/*.html` | 广告 HTML 模板（替换 `YOUR_AD_KEY`） |
 
 **Hero 图**：模板自带的可能是占位文件。换成你的真实 Hero 图，格式推荐 WebP（体积最小）。如果你拿到的是 PNG/JPG，用任何工具转成 WebP 后覆盖。
 
@@ -255,6 +287,24 @@ tags: ["boss", "guide"]
 □ sitemap URL 全部返回 200（pnpm check-sitemap）
 □ SITE_URL 环境变量已配（含 https:// 协议，在 Cloudflare dashboard 配置）
 ```
+
+---
+
+## 模板化进阶：audit + 沉淀
+
+第一个站跑通之后，别急着直接复制仓库做第二个游戏——先花 15 分钟做两件事（完整讲法见学习手册第 9 章）：
+
+**1. 跑模板健康检查**：
+
+```bash
+pnpm template-audit
+```
+
+它会从三层分离的角度打分（如「模板健康度：8/10」）：代码层有没有混进游戏专属字符串（❌ 必须修——那是框架层的违约）、配置层还绑着旧游戏多少、内容层有没有 draft 遗留、demo 图片资产和 `wrangler.toml` demo 值清干净没有。❌ 清零、⚠️ 逐条决定去留之后，这个仓库才是一个干净的模板。
+
+**2. 沉淀换皮清单**：把「复制新站时必改哪些文件、必换哪些目录」写成 `docs/rebrand-checklist.md`（第 9 章有一段现成提示词可以生成初稿）。半年后复制第五个站时，照单执行，不用回忆任何细节。
+
+之后每复制一个新站就是标准四步：复制仓库 → `pnpm apply-template` → 换内容层 → `pnpm build` 验证。批量铺内页见 `pnpm bulk-new-posts`（学习手册第 10 章）。
 
 ---
 

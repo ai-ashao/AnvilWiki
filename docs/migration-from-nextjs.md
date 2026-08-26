@@ -1,6 +1,8 @@
 # 从 Next.js 模板迁移指南
 
 > 如果你已经在用一个 Next.js 的游戏 wiki 模板，想迁移到 AnvilWiki（Astro），本指南帮你平移。
+>
+> ⚠️ **诚实声明**：下表的工时估算与「几乎一致/完全一致」的对照基于 AnvilWiki 自身的架构分析，**尚未经大量实战迁移案例验证**。不同 Next.js 模板结构差异巨大——请把这里的估算当作下限参考，实际以你的代码为准。迁移完成后欢迎提 PR 补充你的实测数据。
 
 ---
 
@@ -8,7 +10,7 @@
 
 | Next.js 模板                          | AnvilWiki                                                | 迁移动作                              |
 | ------------------------------------- | -------------------------------------------------------- | ------------------------------------- |
-| `src/app/globals.css`                 | `src/styles/globals.css`                                 | 直接复制主题色 4 行                   |
+| `src/app/globals.css`                 | `src/styles/globals.css`                                 | 直接复制主题色 8 行(4 变量 × 亮/暗)                   |
 | `src/app/[locale]/page.tsx`           | `src/pages/[locale]/index.astro` + `HomePage.astro`      | 数据保留，渲染层重写                  |
 | `src/app/[locale]/[...slug]/page.tsx` | `src/pages/[...slug].astro` + `[locale]/[...slug].astro` | 逻辑平移到 Astro                      |
 | `src/app/sitemap.ts`                  | `@astrojs/sitemap`（自动）                               | 删手写代码，用集成                    |
@@ -90,7 +92,7 @@ pnpm dev  # 确认 demo 能跑
 
 按 [配置参考手册](./apply-template.md) 把你现有的游戏配置搬过来：
 
-- 主题色（`globals.css` 4 行直接复制）
+- 主题色(`globals.css` 8 行直接复制,4 变量 × 亮/暗)
 - `site.ts`（对应你 Next.js 的站点信息）
 - `navigation.ts`（结构一致，icon 加 `lucide:` 前缀）
 - `routing.ts`（locales 数组复制，删 `localePrefix`）
@@ -128,7 +130,7 @@ pnpm dev    # 逐页访问确认正常
 
 | 迁移阶段 | 工作内容 | 估算工时 |
 |---|---|---|
-| **1. 主题色 + favicon** | 复制 `globals.css` 4 行主题色；favicon 不变（放 `public/`） | 5 分钟 |
+| **1. 主题色 + favicon** | 复制 `globals.css` 8 行主题色变量(4 变量 × 亮/暗)；favicon 不变（放 `public/`） | 5 分钟 |
 | **2. 站点信息** | 把旧模板的 `site info` 搬到 `src/config/site.ts` | 10 分钟 |
 | **3. 导航分类** | `navigation.ts` 结构一致，icon 加 `lucide:` 前缀 | 10 分钟 |
 | **4. 首页文案** | `en.json` 的 `home` 命名空间结构相同，大部分可直接复制；4 种 displayType 的 highlights 需检查 | 20-30 分钟 |

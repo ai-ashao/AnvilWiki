@@ -8,7 +8,7 @@ AnvilWiki is an **open-source (MIT) game wiki site template** built with **Astro
 
 Goal: let beginners deploy a game wiki site to Cloudflare Pages for free (unlimited bandwidth) in ~30 minutes, with strong SEO, i18n, and ad-monetization built in.
 
-**Status (as of 2026-08-11)**: Planning stage. Only `README.md` + `docs/PRD.md` exist. No code yet. Code MVP starts after PRD review.
+**Status (as of 2026-08-26)**: 当前最新 **v2.3.0**（发版历史见 Releases；下列批次按时间叠加）。v2.0.0 released — 内容经营操作系统（四件，模板仓库零 breaking，fork 常规 merge 零迁移）: ① `auto-content.yml` PR 门控内容管道（workflow_dispatch + 确定性生成器 `import-csv`→`pnpm bulk-new-posts` → **八道门禁前置**（全绿才开 draft PR，GITHUB_TOKEN PR 不自动跑 CI 故验证前置）→ create-pull-request@v8 固定分支幂等；LLM 永不进 CI、secrets 零引用；门禁抽成共享 composite action `.github/actions/gates`（ci.yml 同源复用，tests/workflows.test.ts 钉契约）；ADR-004）② `anvilwiki-ops` 0.1.3→**1.0.0**（多站注册表 `~/.config/anvil-ops/sites.toml`（凭据永不入表）+ `--site`/`--all` + `sites list/add/remove`，`submit` 拒绝 `--all`；AI 引用追踪三通道：CF Web Analytics AI referrals（referrer host 聚合 chatgpt/perplexity/gemini/claude/copilot）+ GSC `AI_OVERVIEWS` 探测（experimental）+ `metrics --import-aio <csv>` 导入 GSC gen-AI 报告；MCP 五工具加可选 `site` 参数 = 1.0 唯一 breaking；测试 60→111；ADR-005）③ `pnpm gen-covers` og:image 封面生成（satori+@resvg/resvg-js+subset-font；**封面标准 800×450→1200×675**（Google Discover 大图 ≥1200px）+ 全站 BaseLayout 补 `max-image-preview:large`；品牌色运行时读 globals.css；CJK 标题按字符子集 Noto Sans CJK（OTF 缓存 `node_modules/.cache/gen-covers/fonts/` 不进 git）+ 内置 OFL Lato（`scripts/fonts/`）；manifest hash 缓存；demo 5 张封面已重生成 1200×675）④ `AffiliateSuggestion` 文末建议位（`src/config/affiliates.ts` 默认空=不渲染；复用 AffiliateLink 卡片 + `shared.sponsoredLabel` i18n en/ja；config 门控非 env）。文档: `docs/content-pipeline.md` + `docs/multi-site.md` 新增并进 docs/README 索引、手册 ai-ops 章双语补多站/管道/AI 引用（章数不变 learn 11/dev 7、提示词 18 不变）、ADR-004/005、staying-up-to-date.md MAJOR 措辞修订（里程碑 major）、roadmap.md 演化表 + v2.0 行、PRD §14.2 消歧旧 v2.0 撞号 + 更新记录补齐、README 中英特性升级 + 修 :226 8-chapter 漂移、CHANGELOG compare 链接补齐 1.15.0–1.19.0。决策记录: `docs/superpowers/specs/2026-08-22-v2.0-content-os-design.md`。Astro 刻意锁 5.x（7 已 GA，5→6→7 迁移留独立小版本，见 roadmap 候选池）。Prior v1.x 历史: 见 CHANGELOG.md 与 docs/roadmap.md 演化主线表。Live demo: anvilwiki.pages.dev (Lighthouse 4×100)。**次日审计加固批（v2.0.1，详见 CHANGELOG [2.0.1]）**:category 改 schema enum 硬门禁（软 404 根除）/check-i18n `--strict-ui` 让第八道门禁真正能红/setup.yml 开 PR 前跑 build 验证/auto-content `add-paths`+`--require-output`（CSV 不再入库、零产出响亮失败）/ci.yml 新增 ops-toolkit job（ops 测试进主 CI）/sitemap hreflang 按真实 MDX 覆盖生成（与页面级声明一致）/ops:MCP 站点解析不再吞错、GSC HTTP 错误带修复指引、audit/submit 走 worker 线程不冻结 stdio、测试 111→125/release-ops tag↔版本守卫。**SEO 实战文档批（v2.1.0，2026-08-26，详见 CHANGELOG [2.1.0]，零代码变更）**:新增 `docs/sourcing.md`（挖词 9 渠道 + 第 7 条判断「意图满足度」+ 选词决策管理表）、`docs/ads.md`（广告时机 + Adsterra 收款 USDT/Payoneer 双路线）、`requirements/` 内容准备两模板（事实来源表 + 对标参考表）；seo.md 增外链策略章、deployment.md 增数据复盘指标 + Clarity 热力图、game-selection.md 定调首版 10-15 篇核心页分批上线（生成可 40-60 篇、部署分批）；学习手册第 7 章中英补「先说时机」。**手册同步+初始化规范批（v2.1.1，2026-08-26，详见 CHANGELOG [2.1.1]）**:学习手册 7 章双语接 v2.1.0 文档层（ch1 挖词 9 渠道+意图满足度/ch4 requirements 准备表+首版 10-15 篇分批/ch6 复盘指引/ch8 四条及格线指标表+Clarity/ch10 翻正节奏/ch11 外链策略/ch7 统计三件套 GA4+CF+Clarity 完整教程）;`docs/apply-template.md` 新增「初始化清理规范」章节（两通道删除清单首次文档化）;setup.yml zh 删除路径收窄+CLI wrangler vars 对齐（两处通道漂移修复）;en/weekly-ops tldr 超 480 上限修复。**变现+外链实操文档批（v2.2.0，2026-08-26，详见 CHANGELOG [2.2.0]，零代码变更）**:`docs/ads.md` 三新节——AdSense 收款完整教程（W-8BEN 10% 协定税率/PIN 明信片 4 次寄送+4 个月期限/电汇绑卡/21 日出账 20 日截点/结汇）、Adsterra 接入教程（五广告格式取舍表+Google 广告投放位置政策「挂 AdSense 的站禁触发 popunder」共存红线+脚本粘贴位置 BaseLayout.astro/ArticlePage.astro）、广告平台全景三档表（2026-08 实时门槛:Journey 1k sessions/Mediavine $5k 年收入门槛/Raptive 25k PV）+ 游戏垂直网络层（NitroPay 100k PV·NET-7·官方定位 niche gaming wikis/Venatus/Playwire/PubNation，全景表 11 平台全挂官网直链）+ 游戏 wiki 五档分阶段路线表;`docs/seo.md` 外链章扩到操作层（九渠道优先级清单+逐渠道步骤+三份英文 outreach 邮件模板+免费工具箱 Ahrefs/Hunter.io+做多少节奏节;HARO 2024-12 关停 2025-04 复活/Reddit 10% 全站规则调研校准）;手册第 7 章双语「第三步:收款三件事」节+tldr 两步走改三步走;Adsterra 起付信息对齐 2026 官方口径（USDT $100/Paxum $5/首两笔 $20）。**新手动线优化批（v2.3.0，2026-08-26，详见 CHANGELOG [2.3.0]）**:README 全面重构（新手动线三硬伤修复:pnpm 前置一行安装+快速开始补「push 回 fork」步骤+新增零终端 Actions→Initialize AnvilWiki 通道;wrangler.toml 警告从第一屏下沉到部署步骤提示框;特性区 9→10 条每条≤2 行细节链接化;双语文档导航收敛为 4 入口消除与 docs/README.md 双头漂移;英文区补快速链接表对齐中文区;语言切换锚点+首屏 demo 截图+CONTRIBUTING/CHANGELOG 链接+中文区补 License 行;删指向上游仓库的误导性 Deploy 按钮、Docs 徽章改链英文站;`#5-分钟快速开始` 锚点保留供 deployment.md 反链）;目录微调（Comments.astro 断链 spec 引用改指 docs/comments.md/PRD §15.2 文档策略表 7→20 项补齐/roadmap.md 版本头 v2.0.1→v2.2.0/ROADMAP-v1.5-v1.6.md 归档至 docs/superpowers/ 含 docs/README+PRD 两处引用同步）;落地页转化批（hero 与 FinalCta 主 CTA 改 Fork 直达 `github.com/PNGTRID/AnvilWiki/fork`/docsEntry SEO 卡与 devGuide 五步链接全部改站内手册章消除出站泄漏/landing.ts 写死章数 6 处移除（Hub 卡片本就动态计算）/two-digit stars 措辞去时效/公告条压缩一行/hero 副标题压缩;截图链接复用 tertiaryCta 故保持指向 Demo）;手册批（templatize-your-site 与 sync-and-contribute 两章「下一步」补 markdown 链接×双语/HandbookHub 新增 beginnerHint 零基础 start-here 胶囊,landing.ts 接口+en/zh 数据+组件三处联动）。
 
 ## Read These First
 
@@ -20,7 +20,7 @@ Goal: let beginners deploy a game wiki site to Cloudflare Pages for free (unlimi
 | Layer       | Choice                                          | Notes                                                                                                                                                                                               |
 | ----------- | ----------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Framework   | Astro 5 (`output: 'static'`)                    | Pure static, **no adapter** (unlike Next.js)                                                                                                                                                        |
-| Content     | Content Layer API + `glob()` loader, Zod schema | Defined in root `content.config.ts`. Base dir is `./src/content/wiki` (subdirectory required to avoid Astro's legacy auto-collection of `src/content/<locale>/` folders).                           |
+| Content     | Content Layer API + `glob()` loader, Zod schema | Defined in `src/content.config.ts`. Base dir is `./src/content/wiki` (subdirectory required to avoid Astro's legacy auto-collection of `src/content/<locale>/` folders).                           |
 | MDX         | `@astrojs/mdx` ^4.3.x                           | **mdx 3.x fails with Astro 5.18** (`./jsx/renderer.js` not in exports). mdx 4.x pairs with astro 5.x; mdx 7.x needs astro 7.x.                                                                      |
 | Styles      | Tailwind CSS 3 + `@astrojs/tailwind`            | Theme via CSS variables mapped in `tailwind.config.mjs` (shadcn-style tokens).                                                                                                                      |
 | Icons       | `astro-icon` + `@iconify-json/lucide`           | Use `lucide:` prefix on every icon name. `reddit` does NOT exist in lucide (use `globe`).                                                                                                           |
@@ -48,7 +48,7 @@ Content layer (src/content, src/locales)                   — fully replace per
 ## Engineering Constraints
 
 1. **UI 文案全部走 JSON** (`src/locales/<locale>.json`),组件里不硬编码文字。
-2. **主题色只管 `--brand` / `--brand-light`**(`:root` 2 行 + `.dark` 2 行,共 4 行),组件里所有颜色引用 `var(--brand)`,禁止硬编码 hex/rgba。
+2. **主题色只管 4 个变量 `--brand` / `--brand-light` / `--brand-h` / `--brand-s`**(`:root` 4 行 + `.dark` 4 行,共 8 行;`--brand-text` 由 h/s 自动派生不用手改),组件里所有颜色引用 `var(--brand)`,禁止硬编码 hex/rgba。
 3. **sitemap 扫描实际 MDX 文件**——不从配置数组生成 URL,因为列表页展示的条目可能还没有对应文章。
 4. **分类 key 在 3 个位置保持一致**:`navigation.ts` 的 `NAVIGATION_CONFIG[].key` = `en.json` 的 `nav.<key>` = `src/content/<locale>/<key>/` 目录名。
 5. **语言列表在 3 个位置保持一致**:`routing.ts` 的 `locales` = `src/locales/*.json` 文件 = `src/content/<locale>/` 目录。
@@ -66,23 +66,56 @@ Content layer (src/content, src/locales)                   — fully replace per
 - **列表页**:不回退——该语言没有文章就显示空状态(`shared.noArticles`)。
 - 这个不对称是有意的:列表追求准确(不展示不存在的内容),详情追求可达(直接 URL 永远能打开)。
 
-## Ads: Each Slot Is Isolated
+## Ads: Google AdSense, 3 Positions
 
-每个广告位是 `public/ads/` 下的独立 HTML 文件(各自独立的 `window` 作用域),通过 `<iframe>` 嵌入。不要改成全局加载器——多个广告共享 `window` 会导致配置冲突。详见 PRD §10。
+广告系统基于 Google AdSense,3 个广告位(Sticky / Sidebar / InContent)各一个 `<AdSenseSlot position="...">` 组件。`AdSenseSlot` 根据 `position` 读对应的 `PUBLIC_ADSENSE_SLOT_*` 环境变量,渲染 `<ins class="adsbygoogle">` 标签。`PUBLIC_ADSENSE_CLIENT` 或对应 slot ID 为空时组件 `return null` 不渲染(保 Lighthouse 4×100 开箱契约)。AdSense loader 由 `BaseLayout.astro` 在 `<head>` 注入,仅当 `PUBLIC_ADSENSE_CLIENT` 有值时加载。详见 PRD §10。
+
+## Conversational Content Authoring (AI-native page generation)
+
+Fork users drive this template from AI coding agents (ZCode / Claude Code / Codex / Cursor). They should be able to say "write a boss guide from these notes" and get a build-passing MDX page — no scripts required for authoring. Rules for any agent creating content:
+
+1. **Read before writing**: `docs/content-format.md` (field table + body rules), `src/content.config.ts` (Zod schema is the hard gate — invalid frontmatter fails `pnpm build`; `category` is a schema-level `z.enum(CONTENT_TYPES)` since the 2026-08-23 audit fix, a typo'd category fails the build instead of shipping a soft-404), `src/config/navigation.ts`, and one existing article of the same type for structure.
+2. **Hard frontmatter rules**: `description` 40–165 chars; `title` ≤ 80 chars; H1 never in the body (first heading is H2, question-shaped); `summary` is a 40–60 word direct answer (Quick Answer card + AI Overviews candidate; schema cap 400 chars — English at 40–60 words runs 250–350); `tags` reuse existing tag vocabulary (grep `tags:` under `src/content/wiki/`); unverified drafts get `draft: true`; fast-patching games get `gameVersion`.
+3. **Media density**: every article gets a cover (`image`, `src/assets/covers/`, **1200×675** since v2.0 — Google Discover large-preview ≥1200px; generate with `pnpm gen-covers`; codes pages included, share-card identity). Boss guides pair ≥1 video (inline `<Video>` + frontmatter `videos` registration) with 2–4 `gallery` mechanics shots; guides use inline card images (`![alt](/images/articles/…)` — 16:9, `public/images/articles/`; globals.css reserves a 16:9 zero-CLS box for bare markdown `<img>`); tier lists put a card image on headline entries. Demo references: `en/bosses/stormcaller.mdx` (gallery), `en/guides/weapon-tier-list.mdx` (inline), `en/guides/beginner-guide.mdx` (gallery). Full table: `docs/content-format.md` 媒体密度建议.
+4. **Component vocabulary** (import from `~/components/...`): `CodeBlock` (codes), `StatBar` (boss/item stat bars), `Callout` (info/tip/warn/danger), `Accordion` (collapsible detail), `Video` (inline YouTube, register IDs in frontmatter `videos` for JSON-LD), `AffiliateLink` (sponsored, auto `rel`), plus frontmatter-driven `boss` stat card / `codes` (Active+Expired auto-split) / `videos` / `gallery`.
+5. **Verify, don't trust yourself**: after writing, run `pnpm check-content && pnpm build`. Both green = done. Optionally finish with `npx anvilwiki-ops submit --title "..."` (validate → branch → PR, see Ops Toolkit section below). Never fabricate game facts (codes, stats) — ask the user for data; a single fake code destroys site trust.
+6. **Slash-command skills** live in `.agent/skills/` (Agent Skills open standard): `anvil-new-article` (generate a page from any source material), `anvil-batch-articles` (turn a keyword list into a batch of pages — intent classification → `pnpm bulk-new-posts` scaffolding → one unified prompt fills the batch; never fabricate, never reuse boilerplate across the batch), `anvil-update-codes` (apply new/expired codes), `anvil-refresh` (freshness audit). Agents supporting the standard auto-discover them; this section is the zero-install fallback.
 
 ## Commands
 
 ```bash
 pnpm install
 pnpm dev              # dev server, http://localhost:4321
-pnpm build            # includes Content schema validation — fails on bad frontmatter
+pnpm build            # includes Content schema validation — fails on bad frontmatter; postbuild indexes Pagefind search
 pnpm typecheck        # astro check (0 errors expected)
-pnpm lint             # ESLint + Prettier + eslint-plugin-astro
-pnpm test             # Vitest (18 tests: url + seo)
+pnpm lint             # ESLint (eslint-plugin-astro)
+pnpm test             # Vitest — 9 suites (url, seo, tags, i18n-smoke, content-utils, handbook, workflows, covers, affiliates)
+pnpm check-config     # scripts/check-config.ts — nav/locale 3-place consistency
+pnpm new-locale       # scripts/new-locale.ts — scaffold a new language
 pnpm check-sitemap    # scripts/check-sitemap.ts — verify all sitemap URLs return 200
+pnpm check-links      # scripts/check-links.ts — audit dist/ internal links (run after build)
+pnpm check-i18n       # scripts/check-i18n.ts — translation coverage report (--strict-ui gates missing UI keys; article depth stays report-only by design)
+pnpm check-content    # scripts/check-content.ts — content lint (no H1, alt text, link slashes)
+pnpm gen-covers       # scripts/gen-covers.ts — generate 1200×675 og:image covers from titles (brand colors from globals.css; CJK via Noto subset)
+pnpm template-audit   # scripts/template-audit.ts — template health check (code purity / rebrand leftovers / health score)
+pnpm bulk-new-posts   # scripts/bulk-new-posts.ts — batch-create draft MDX from a new-posts.csv keyword list (--dry-run preview)
+pnpm refresh-audit    # scripts/refresh-audit.ts — deterministic freshness report (codes pages >7d, stale categories >90d)
 pnpm apply-template   # interactive template-apply CLI (hex→HSL theme, rewrite config/locales)
 pnpm new-post         # interactive MDX article scaffold
 ```
+
+## Ops Toolkit: `tools/anvil-ops/` (anvilwiki-ops)
+
+Standalone npm package (`anvilwiki-ops`, semver 1.0.1 as of v2.0.1, published to npm): ops CLI (`anvil-ops`) + stdio MCP server (`anvil-ops-mcp` / `anvil-ops mcp`) for fork sites — `doctor` / `metrics` / `audit` / `insights` / `submit` map 1:1 to MCP tools (all accept optional `site`); plus `sites list/add/remove` (multi-site registry `~/.config/anvil-ops/sites.toml`, credentials never stored there), `--site <name>`/`--all` flags (submit refuses `--all`), AI referral tracking (CF referrer-host aggregation + GSC `AI_OVERVIEWS` probe + `metrics --import-aio <csv>`). 1.0.0 breaking change: MCP tool schemas gained the optional `site` param. GSC (service-account JSON) + CF Web Analytics (token; site tag read from `wrangler.toml PUBLIC_CF_BEACON_TOKEN`), env-gated (empty = disabled). Writes go through validation (check-content + non-strict check-i18n + build) → branch → PR only, never push main. Spec: `docs/superpowers/specs/2026-08-18-anvil-ops-cli-mcp-design.md`.
+
+```bash
+cd tools/anvil-ops
+pnpm install   # own pnpm-workspace.yaml (allowBuilds) — do NOT remove: without it the root workspace hijacks installs (node_modules stays empty)
+pnpm test      # 125 tests
+pnpm typecheck && pnpm build
+```
+
+The repo root excludes `tools/` from tsconfig + eslint, so root `pnpm typecheck/lint/test/build` are unaffected.
 
 ## Decisions to Confirm with User Before Deviating
 
