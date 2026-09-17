@@ -36,11 +36,11 @@
 /* Other design tokens — these reference --brand, so they auto-follow theme changes. */
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    --background: 210 25% 98%;
     --foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
+    --muted: 214 28% 94%;
     --muted-foreground: 215 16% 47%;
-    --border: 214 32% 91%;
+    --border: 214 24% 88%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
   }
@@ -116,8 +116,23 @@
     @apply inline-flex items-center justify-center rounded-md border border-border bg-background px-4 py-2 text-sm font-medium transition hover:bg-muted;
   }
 
+  .surface-card {
+    @apply border bg-card text-card-foreground;
+  }
+  .surface-muted {
+    background-color: hsl(var(--muted));
+  }
   .card {
     @apply rounded-lg border bg-card text-card-foreground transition hover:border-nav/50 hover:shadow-md;
+  }
+  html:not(.dark) .card,
+  html:not(.dark) .surface-card {
+    border-color: hsl(var(--border) / 0.65);
+    box-shadow: 0 2px 8px hsl(var(--foreground) / 0.035);
+  }
+  html:not(.dark) .card:hover {
+    border-color: hsl(var(--brand) / 0.35);
+    box-shadow: 0 6px 18px hsl(var(--foreground) / 0.07);
   }
 
   /* Unified section vertical rhythm — use on all homepage sections. */

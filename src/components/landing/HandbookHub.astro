@@ -43,10 +43,10 @@ const count = (m: HandbookManual) => chapters.filter((c) => c.data.manual === m)
     </div>
 
     {/* The whole job at a glance — every step links to its chapter */}
-    <div class="mt-10 rounded-lg border border-border bg-card p-5 sm:p-6">
+    <div class="mt-10 rounded-lg surface-card p-5 sm:p-6">
       <h2 class="text-lg font-bold text-foreground">{t.handbook.roadmap.title}</h2>
       <p class="mt-1 text-sm text-muted-foreground">{t.handbook.roadmap.hint}</p>
-      <ol class="mt-5 grid gap-2 sm:grid-cols-2">
+      <ol class="mt-5 grid grid-cols-1 gap-2 sm:grid-cols-2">
         {t.handbook.roadmap.items.map((item, i) => (
           <li>
             <a
